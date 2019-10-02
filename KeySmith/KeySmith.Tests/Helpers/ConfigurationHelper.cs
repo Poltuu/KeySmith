@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using StackExchange.Redis;
+using System;
 using System.IO;
 
 namespace KeySmith.Tests
@@ -17,13 +18,9 @@ namespace KeySmith.Tests
                 {
                     if (_connection == null)
                     {
-                        var config = new ConfigurationBuilder()
-                            .SetBasePath(Path.GetDirectoryName(typeof(ConfigurationHelper).Assembly.Location))
-                            .AddJsonFile("appsettings.json")
-                            .Build();
-
-                        var redisConfig = new ConfigurationOptions { Password = config["Redis:Password"] };
-                        redisConfig.EndPoints.Add(config["Redis:Host"]);
+                        var connectionstring = Environment.GetEnvironmentVariable("CONNECTIONSTRINGS_REDIS") ?? "redis:6379";
+                        var redisConfig = new ConfigurationOptions();
+                        redisConfig.EndPoints.Add(connectionstring);
                         _connection = ConnectionMultiplexer.Connect(redisConfig);
                     }
                 }

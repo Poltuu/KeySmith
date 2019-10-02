@@ -1,0 +1,36 @@
+# ASP.NET Core
+# Build and test ASP.NET Core projects targeting .NET Core.
+# Add steps that run tests, create a NuGet package, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
+
+trigger:
+- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+container: mcr.microsoft.com/dotnet/core/sdk:3.0
+
+resources:
+  containers:
+  - container: redis
+    image: redis
+
+services:
+  redis: redis
+
+variables:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+steps:  
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'build'
+    projects: '**/*.csproj'
+    arguments: '--configuration release'
+  env:
+    CONNECTIONSTRINGS_REDIS: redis:6379
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'test'
+    projects: '**/*.Tests.csproj'
