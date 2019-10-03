@@ -1,77 +1,165 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using Nito.AsyncEx;
+using StackExchange.Redis;
 using System;
-using System.Linq;
+using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace KeySmith.Tests
 {
-    public class AcquireDistributedLockTests
+    public class AcquireLockTests
     {
-        static int value1;
-        static int count;
-
-        private readonly ITestOutputHelper output;
-
-        public AcquireDistributedLockTests(ITestOutputHelper output)
+        [Fact]
+        public async Task DefaultScenario()
         {
-            this.output = output;
+            var keySpace = new KeySpaceConfiguration { Root = "AcquireLockTests.DefaultScenario" };
+            var config = new Mock<IOptions<KeySpaceConfiguration>>();
+            config.SetupGet(c => c.Value).Returns(keySpace);
+            var key = new DistributedLockKey(keySpace.Root, "lockName");
+
+            using (var connection = ConfigurationHelper.GetNewConnection())
+            {
+                var service = new RedisLockService(connection, config.Object, new RedisSerializer(), new Mock<ILogger<RedisLockService>>().Object);
+                await service.InvalidateAsync(key);
+                try
+                {
+                    using (var locker = await service.AcquireDistributedLockAsync(key, TimeSpan.Zero))
+                    {
+                        Assert.NotNull(locker);
+                        Assert.Null(await service.TryAcquireDistributedLockAsync(key));
+                        await Assert.ThrowsAsync<TimeoutException>(() => service.AcquireDistributedLockAsync(key, TimeSpan.Zero));
+                        await Assert.ThrowsAsync<TimeoutException>(() => service.AcquireDistributedLockAsync(key, new TimeSpan(0, 0, 0, 0, 50)));
+                    }
+
+                    //this is the time for the service to instruct that the previous lock request is actually freeing the lock in question
+                    await Task.Delay(1000);
+
+                    using (var locker = await service.TryAcquireDistributedLockAsync(key))
+                    {
+                        Assert.NotNull(locker);
+                    }
+                }
+                finally
+                {
+                    await service.InvalidateAsync(key);
+                }
+            }
         }
 
-        [Fact]
-        public async Task TestAcquireDistributedLock()
+        [Theory]
+        [InlineData(1, 10, 1)]
+        [InlineData(10, 1, 5)]
+        public async Task ConcurrencyScenarioBlock(int waitForLock, int taskLength, int expectedResult)
         {
-            var logger = new Mock<ILogger<RedisLockService>>();
-            logger.Setup(l => l.Log(It.IsAny<LogLevel>(), It.IsAny<EventId>(), It.IsAny<RedisLockService>(), It.IsAny<Exception>(), It.IsAny<Func<RedisLockService, Exception, string>>()))
-                .Callback((LogLevel l, EventId i, RedisLockService s, Exception e, Func<RedisLockService, Exception, string> f) => output.WriteLine(f(s, e)));
-
+            var keySpace = new KeySpaceConfiguration { Root = "AcquireLockTests.ConcurrencyScenarioBlock" };
             var config = new Mock<IOptions<KeySpaceConfiguration>>();
-            config.SetupGet(c => c.Value).Returns(new KeySpaceConfiguration { ApplicationName = "MyApplicationName3" });
-            var connection = ConfigurationHelper.GetConnection();
-            var service = new RedisLockService(connection, config.Object, new RedisSerializer(), logger.Object);
-            var key = new DistributedLockKey("MyApplicationName3", "top-lock3");
+            config.SetupGet(c => c.Value).Returns(keySpace);
+            var key = new DistributedLockKey(keySpace.Root, "lockName");
 
-            value1 = 0;
-            count = 0;
+            var result = 0;
+            var timeOutExceptions = 0;
+            var testConfig = new TestConfig
+            {
+                TaskLength = new TimeSpan(0, 0, taskLength),
+                WaitForLock = new TimeSpan(0, 0, waitForLock),
+                IncrementResult = () => Interlocked.Increment(ref result),
+                IncrementTimeOut = () => Interlocked.Increment(ref timeOutExceptions)
+            };
+            var host = new HostBuilder().ConfigureServices(s =>
+            {
+                s.AddSingleton(p => ConfigurationHelper.GetNewConnection());
+                s.AddSingleton<IRedisSerializer>(new RedisSerializer());
+                s.AddSingleton(new Mock<ILogger<RedisLockService>>().Object);
+                s.AddSingleton(key);
+                s.AddSingleton<RedisLockService>();
+                s.AddSingleton(testConfig);
 
-            await service.InvalidateAsync(key);
+                s.AddHostedService<AcquireLockHostedService>();
+                s.AddHostedService<A2>();
+                s.AddHostedService<A3>();
+                s.AddHostedService<A4>();
+                s.AddHostedService<A5>();
+            }).Build();
 
             try
             {
-                var parallel = Parallel.For(0, 3, index =>
-                {
-                    AsyncContext.Run(() => Task.WhenAll(Enumerable.Range(0, 10).Select(i => GetLockAndWaitAsync((10 * index) + i, service, key))));
-                });
+                await host.Services.GetRequiredService<RedisLockService>().InvalidateAsync(key);
+                //ACT
+                await Task.WhenAny(host.RunAsync(), Task.Delay(10000));
 
-                Assert.Equal(30, count);
-                Assert.Equal(29 * 30 / 2, value1);
-            }
-            catch (Exception e)
-            {
-                throw new Exception($"Test failed: total={value1}", e);
+                //ASSERT
+                if (testConfig.Errors.Count != 0)
+                {
+                    throw new AggregateException(testConfig.Errors.ToArray());
+                }
+                Assert.Equal(expectedResult, result);
+                Assert.Equal(5 - expectedResult, timeOutExceptions);
             }
             finally
             {
-                await service.InvalidateAsync(key);
+                //CLEAN
+                await host.StopAsync();
             }
         }
+    }
 
-        async Task GetLockAndWaitAsync(int index, RedisLockService service, DistributedLockKey key)
+    public class TestConfig
+    {
+        public TimeSpan WaitForLock { get; set; }
+        public TimeSpan TaskLength { get; set; }
+        public Action IncrementResult { get; set; }
+        public Action IncrementTimeOut { get; set; }
+        public ConcurrentBag<Exception> Errors { get; set; } = new ConcurrentBag<Exception>();
+    }
+
+    public class A5 : AcquireLockHostedService { public A5(RedisLockService s, DistributedLockKey key, TestConfig t) : base(s, key, t) { } }
+    public class A4 : AcquireLockHostedService { public A4(RedisLockService s, DistributedLockKey key, TestConfig t) : base(s, key, t) { } }
+    public class A3 : AcquireLockHostedService { public A3(RedisLockService s, DistributedLockKey key, TestConfig t) : base(s, key, t) { } }
+    public class A2 : AcquireLockHostedService { public A2(RedisLockService s, DistributedLockKey key, TestConfig t) : base(s, key, t) { } }
+    public class AcquireLockHostedService : BackgroundService
+    {
+        private readonly RedisLockService _redisLockService;
+        private readonly DistributedLockKey _key;
+        private readonly TestConfig _testConfig;
+
+        public AcquireLockHostedService(RedisLockService redisLockService, DistributedLockKey key, TestConfig testConfig)
         {
-            using (var locker = await service.AcquireDistributedLockAsync(key, TimeSpan.FromMilliseconds(20000)))
+            _redisLockService = redisLockService ?? throw new ArgumentNullException(nameof(redisLockService));
+            _key = key ?? throw new ArgumentNullException(nameof(key));
+            _testConfig = testConfig ?? throw new ArgumentNullException(nameof(testConfig));
+        }
+
+        public override Task StopAsync(CancellationToken cancellationToken)
+        {
+            return _redisLockService.InvalidateAsync(_key);
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            try
             {
-                if (locker == null)
+                using (var locker = await _redisLockService.AcquireDistributedLockAsync(_key, _testConfig.WaitForLock))
                 {
-                    throw new Exception("Concurrency problem");
+                    _testConfig.IncrementResult();
+                    await Task.Delay(_testConfig.TaskLength);
                 }
-                Interlocked.Increment(ref count);
-                Interlocked.Add(ref value1, index);
-                await Task.Delay(10);
+            }
+            catch (RedisTimeoutException e)
+            {
+                _testConfig.Errors.Add(e);
+            }
+            catch (TimeoutException)
+            {
+                _testConfig.IncrementTimeOut();
+            }
+            catch (Exception e)
+            {
+                _testConfig.Errors.Add(e);
             }
         }
     }

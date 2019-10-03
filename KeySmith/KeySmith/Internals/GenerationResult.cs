@@ -1,17 +1,17 @@
-﻿using System;
-
-namespace KeySmith.Internals
+﻿namespace KeySmith.Internals
 {
     struct GenerationResult<T>
     {
         public T Result { get; set; }
-        public Exception Error { get; set; }
+
+        public string ExceptionType { get; set; }
+        public string Message { get; set; }
 
         public T GetResult()
         {
-            if (Error != null)
+            if (!string.IsNullOrEmpty(Message))
             {
-                throw Error;
+                throw new DistributedException(ExceptionType, Message);
             }
 
             return Result;

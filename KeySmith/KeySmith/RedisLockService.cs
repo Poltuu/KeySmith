@@ -31,7 +31,7 @@ namespace KeySmith
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _redisSerializer = redisSerializer ?? throw new ArgumentNullException(nameof(redisSerializer));
 
-            Init(configuration.Value.ApplicationName);
+            Init(configuration.Value.Root);
         }
 
         ///<inheritdoc />
@@ -51,19 +51,20 @@ namespace KeySmith
             var lockKey = key.GetLockKey();
             if (subscribeIfUnavailable)
             {
-                if ((bool)await db.ScriptEvaluateAsync(ScriptsLibrary.GetLockOrSubscribe, new { 
+                if ((bool)await db.ScriptEvaluateAsync(ScriptsLibrary.GetLockOrSubscribe, new
+                {
                     LockWaitingListKey = key.GetLockWaitingListKey(),
                     Value = identifier,
                     Key = lockKey,
                     Timeout = DefaultLockTimeout.TotalSeconds
                 }).ConfigureAwait(false))
                 {
-                    return new RedisLock(db, identifier, key, ScriptsLibrary.FreeLockAndPop);
+                    return new RedisLock(db, identifier, key);
                 }
             }
             else if (await db.StringSetAsync(lockKey, identifier, DefaultLockTimeout, When.NotExists).ConfigureAwait(false))
             {
-                return new RedisLock(db, identifier, key, ScriptsLibrary.FreeLockAndPop);
+                return new RedisLock(db, identifier, key);
             }
 
             return null;
@@ -82,7 +83,7 @@ namespace KeySmith
             var queuedLock = new QueuedLock
             {
                 Completion = new TaskCompletionSource<IDisposable>(),
-                GetLockFactory = () => new RedisLock(db, identifier, key, ScriptsLibrary.FreeLockAndPop)
+                GetLockFactory = () => new RedisLock(db, identifier, key)
             };
             _queueForLocks.AddOrUpdate(identifier, queuedLock, (s, v) => v);
 
@@ -104,8 +105,10 @@ namespace KeySmith
 
             return await GetTimeoutTaskAsync(waitTimeout, identifier, c => queuedLock.Completion.Task, id =>
             {
-                _queueForLocks.TryRemove(identifier, out var qLock);
-                qLock.Completion.TrySetCanceled();
+                if (_queueForLocks.TryGetValue(identifier, out var qLock))
+                {
+                    qLock.Completion.TrySetCanceled();
+                }
             }).ConfigureAwait(false);
         }
 
@@ -154,7 +157,7 @@ namespace KeySmith
             }
             catch (Exception e)
             {
-                return new GenerationResult<T> { Error = e };
+                return new GenerationResult<T> { ExceptionType = (e.InnerException ?? e).GetType().FullName, Message = (e.InnerException ?? e).Message };
             }
         }
 
@@ -229,6 +232,10 @@ namespace KeySmith
                 }
 
                 ctsDelay.Cancel();
+                if (task.Exception != null)
+                {
+                    throw task.Exception.InnerException;
+                }
                 return task.Result;
             }
         }
