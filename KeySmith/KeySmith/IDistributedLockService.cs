@@ -13,7 +13,7 @@ namespace KeySmith
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        Task<IDisposable> TryAcquireDistributedLockAsync(DistributedLockKey key);
+        Task<IDisposable?> TryAcquireDistributedLockAsync(DistributedLockKey key);
 
         /// <summary>
         /// Wait until the lock is acquired. Throw a timeout exception otherwise

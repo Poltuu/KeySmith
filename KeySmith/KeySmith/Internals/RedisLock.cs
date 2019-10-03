@@ -13,9 +13,9 @@ namespace KeySmith.Internals
 
         public RedisLock(IDatabase db, string identifier, DistributedLockKey key)
         {
-            _db = db ?? throw new ArgumentNullException(nameof(db));
-            _identifier = identifier ?? throw new ArgumentNullException(nameof(identifier));
-            _key = key ?? throw new ArgumentNullException(nameof(key));
+            _db = db;
+            _identifier = identifier;
+            _key = key;
         }
 
         public void Dispose()

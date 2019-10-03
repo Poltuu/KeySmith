@@ -11,6 +11,9 @@ using KeySmith.Internals;
 
 namespace KeySmith
 {
+    /// <summary>
+    /// A service able to serve distributed lock on one redis instance
+    /// </summary>
     public class RedisLockService : IDistributedLockService
     {
         private readonly ConnectionMultiplexer _redis;
@@ -25,11 +28,18 @@ namespace KeySmith
         private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, Subscriber>> _subscriptions = new ConcurrentDictionary<string, ConcurrentDictionary<string, Subscriber>>();
         private readonly ConcurrentDictionary<string, QueuedLock> _queueForLocks = new ConcurrentDictionary<string, QueuedLock>();
 
+        /// <summary>
+        ///  Initializes a new instance of the <see cref="RedisLockService"/> class
+        /// </summary>
+        /// <param name="redis"></param>
+        /// <param name="configuration"></param>
+        /// <param name="redisSerializer"></param>
+        /// <param name="logger"></param>
         public RedisLockService(ConnectionMultiplexer redis, IOptions<KeySpaceConfiguration> configuration, IRedisSerializer redisSerializer, ILogger<RedisLockService> logger)
         {
-            _redis = redis ?? throw new ArgumentNullException(nameof(redis));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _redisSerializer = redisSerializer ?? throw new ArgumentNullException(nameof(redisSerializer));
+            _redis = redis;
+            _logger = logger;
+            _redisSerializer = redisSerializer;
 
             Init(configuration.Value.Root);
         }
@@ -41,12 +51,12 @@ namespace KeySmith
         }
 
         ///<inheritdoc />
-        public Task<IDisposable> TryAcquireDistributedLockAsync(DistributedLockKey key)
+        public Task<IDisposable?> TryAcquireDistributedLockAsync(DistributedLockKey key)
         {
             return TryAcquireDistributedLockAsync(_redis.GetDatabase(), key, Guid.NewGuid().ToString(), false);
         }
 
-        async Task<IDisposable> TryAcquireDistributedLockAsync(IDatabase db, DistributedLockKey key, string identifier, bool subscribeIfUnavailable)
+        async Task<IDisposable?> TryAcquireDistributedLockAsync(IDatabase db, DistributedLockKey key, string identifier, bool subscribeIfUnavailable)
         {
             var lockKey = key.GetLockKey();
             if (subscribeIfUnavailable)
@@ -215,7 +225,7 @@ namespace KeySmith
             }
         }
 
-        static async Task<T> GetTimeoutTaskAsync<T>(TimeSpan timeout, string identifier, Func<CancellationToken, Task<T>> actionAsync, Action<string> timeoutCleanup = null)
+        static async Task<T> GetTimeoutTaskAsync<T>(TimeSpan timeout, string identifier, Func<CancellationToken, Task<T>> actionAsync, Action<string> timeoutCleanup)
         {
             using (var ctsDelay = new CancellationTokenSource())
             using (var ctsTask = new CancellationTokenSource())

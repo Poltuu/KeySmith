@@ -112,8 +112,8 @@ namespace KeySmith.Tests
     {
         public TimeSpan WaitForLock { get; set; }
         public TimeSpan TaskLength { get; set; }
-        public Action IncrementResult { get; set; }
-        public Action IncrementTimeOut { get; set; }
+        public Action IncrementResult { get; set; } = () => { };
+        public Action IncrementTimeOut { get; set; } = () => { };
         public ConcurrentBag<Exception> Errors { get; set; } = new ConcurrentBag<Exception>();
     }
 
@@ -129,9 +129,9 @@ namespace KeySmith.Tests
 
         public AcquireLockHostedService(RedisLockService redisLockService, DistributedLockKey key, TestConfig testConfig)
         {
-            _redisLockService = redisLockService ?? throw new ArgumentNullException(nameof(redisLockService));
-            _key = key ?? throw new ArgumentNullException(nameof(key));
-            _testConfig = testConfig ?? throw new ArgumentNullException(nameof(testConfig));
+            _redisLockService = redisLockService;
+            _key = key;
+            _testConfig = testConfig;
         }
 
         public override Task StopAsync(CancellationToken cancellationToken)

@@ -8,6 +8,6 @@
         /// <summary>
         /// Gets or sets the root for all redis keys
         /// </summary>
-        public string Root { get; set; }
+        public string Root { get; set; } = "";
     }
 }

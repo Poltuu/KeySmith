@@ -149,7 +149,7 @@ namespace KeySmith.Tests
                 await Task.WhenAny(host.RunAsync(), Task.Delay(5000));
 
                 Assert.Equal(5, ConcurrencyScenarioGenerationFails.Count);
-                Assert.Equal(5, ConcurrencyScenarioGenerationFails.OfType<DistributedException>().Count());
+                Assert.Equal(5, ConcurrencyScenarioGenerationFails.OfType<GenerationException>().Count());
             }
             finally
             {
@@ -169,8 +169,8 @@ namespace KeySmith.Tests
 
         public GeneratorHostedService(RedisLockService redisLockService, DistributedLockKey key)
         {
-            _redisLockService = redisLockService ?? throw new ArgumentNullException(nameof(redisLockService));
-            _key = key ?? throw new ArgumentNullException(nameof(key));
+            _redisLockService = redisLockService;
+            _key = key;
         }
 
         async Task<MyClass> Generator()
@@ -210,8 +210,8 @@ namespace KeySmith.Tests
 
         public FailedGeneratorHostedService(RedisLockService redisLockService, DistributedLockKey key)
         {
-            _redisLockService = redisLockService ?? throw new ArgumentNullException(nameof(redisLockService));
-            _key = key ?? throw new ArgumentNullException(nameof(key));
+            _redisLockService = redisLockService;
+            _key = key;
         }
 
         Task<MyClass> Generator() => throw new ApplicationException("aaa");

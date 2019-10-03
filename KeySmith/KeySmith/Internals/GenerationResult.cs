@@ -4,14 +4,14 @@
     {
         public T Result { get; set; }
 
-        public string ExceptionType { get; set; }
-        public string Message { get; set; }
+        public string? ExceptionType { get; set; }
+        public string? Message { get; set; }
 
         public T GetResult()
         {
-            if (!string.IsNullOrEmpty(Message))
+            if (Message != null)
             {
-                throw new DistributedException(ExceptionType, Message);
+                throw new GenerationException(ExceptionType ?? "", Message);
             }
 
             return Result;

@@ -2,6 +2,19 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>8.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyVersion>0.1.0</AssemblyVersion>
+    <Version>0.1.0</Version>
+    <Authors>Romain V</Authors>
+    <Description>Keysmith provides support efficient distributed locking with one redis instance. For several redis instances, prefer redlock.</Description>
+    <PackageLicenseExpression>Unlicense</PackageLicenseExpression>
+    <PackageIconUrl>https://raw.githubusercontent.com/Poltuu/Harpoon/master/icon.png</PackageIconUrl>
+    <PackageTags>distributed lock</PackageTags>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DocumentationFile>KeySmith.xml</DocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>

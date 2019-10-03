@@ -102,8 +102,8 @@ namespace KeySmith.Tests
 
         public TryAcquireLockHostedService(RedisLockService redisLockService, DistributedLockKey key)
         {
-            _redisLockService = redisLockService ?? throw new ArgumentNullException(nameof(redisLockService));
-            _key = key ?? throw new ArgumentNullException(nameof(key));
+            _redisLockService = redisLockService;
+            _key = key;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)

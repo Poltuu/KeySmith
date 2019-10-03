@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace KeySmith
+﻿namespace KeySmith
 {
     /// <summary>
     /// This class represents a lock key
@@ -10,10 +8,15 @@ namespace KeySmith
         private readonly string _root;
         private readonly string _lockName;
 
+        /// <summary>
+        ///  Initializes a new instance of the <see cref="DistributedLockKey"/> class
+        /// </summary>
+        /// <param name="root"></param>
+        /// <param name="lockName"></param>
         public DistributedLockKey(string root, string lockName)
         {
-            _root = root ?? throw new ArgumentNullException(nameof(root));
-            _lockName = lockName ?? throw new ArgumentNullException(nameof(lockName));
+            _root = root;
+            _lockName = lockName;
         }
 
         /// <summary>
