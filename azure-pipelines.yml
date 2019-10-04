@@ -23,20 +23,31 @@ variables:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
 
 steps:  
+
+- task: NuGetCommand@2
+  displayName: 'get git version'
+  inputs:
+    command: custom
+    arguments: install GitVersion.CommandLine -Version 4.0.0 -OutputDirectory $(Build.BinariesDirectory)/tools -ExcludeVersion
+- script: mono $(Build.BinariesDirectory)/tools/GitVersion.CommandLine/tools/GitVersion.exe /output buildserver /nofetch
+
 - task: DotNetCoreCLI@2
+  displayName: 'dotnet build'
   inputs:
     command: 'build'
     projects: '**/*.csproj'
-    arguments: '--configuration release'
+    arguments: '--configuration release /p:$(GitVersion.NuGetVersion)'
   env:
     CONNECTIONSTRINGS_REDIS: redis:6379
+
 - task: DotNetCoreCLI@2
+  displayName: 'dotnet test'
   inputs:
     command: 'test'
     projects: '**/*.Tests.csproj'
     arguments: '--collect "Xplat code coverage"'
     nobuild: true
-  
+
 - task: DotNetCoreCLI@2
   inputs:
     command: 'pack'
@@ -44,12 +55,19 @@ steps:
     includesymbols: true
     includesource: true
     versioningScheme: 'off'
+    nobuild: true
 
 - task: NuGetCommand@2
   inputs:
     command: 'push'
     packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;'
-    nuGetFeedType: 'external'
-    externalFeedCredentials: $(NUGET)
-    feedsToUse: config
-    includeNuGetOrg: true
+    publishVstsFeed: 'TestNugetFeed'
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+
+# - task: NuGetCommand@2
+#   inputs:
+#     command: 'push'
+#     packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;'
+#     nuGetFeedType: 'external'
+#     publishFeedCredentials: NugetConnection
+#   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
