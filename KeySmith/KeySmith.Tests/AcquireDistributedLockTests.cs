@@ -14,13 +14,15 @@ namespace KeySmith.Tests
 {
     public class AcquireLockTests
     {
-        [Fact]
-        public async Task DefaultScenario()
+        [Theory]
+        [InlineData(0)]
+        [InlineData(50)]
+        public async Task DefaultScenario(int ms)
         {
             var keySpace = new KeySpaceConfiguration { Root = "AcquireLockTests.DefaultScenario" };
             var config = new Mock<IOptions<KeySpaceConfiguration>>();
             config.SetupGet(c => c.Value).Returns(keySpace);
-            var key = new DistributedLockKey(keySpace.Root, "lockName");
+            var key = new DistributedLockKey(keySpace.Root, "lockName", new TimeSpan(0, 0, 0, 0, ms), new TimeSpan(0, 10, 0));
 
             using (var connection = ConfigurationHelper.GetNewConnection())
             {
@@ -28,12 +30,11 @@ namespace KeySmith.Tests
                 await service.InvalidateAsync(key);
                 try
                 {
-                    using (var locker = await service.AcquireDistributedLockAsync(key, TimeSpan.Zero))
+                    using (var locker = await service.AcquireDistributedLockAsync(key))
                     {
                         Assert.NotNull(locker);
                         Assert.Null(await service.TryAcquireDistributedLockAsync(key));
-                        await Assert.ThrowsAsync<TimeoutException>(() => service.AcquireDistributedLockAsync(key, TimeSpan.Zero));
-                        await Assert.ThrowsAsync<TimeoutException>(() => service.AcquireDistributedLockAsync(key, new TimeSpan(0, 0, 0, 0, 50)));
+                        await Assert.ThrowsAsync<TimeoutException>(() => service.AcquireDistributedLockAsync(key));
                     }
 
                     //this is the time for the service to instruct that the previous lock request is actually freeing the lock in question
@@ -59,14 +60,13 @@ namespace KeySmith.Tests
             var keySpace = new KeySpaceConfiguration { Root = "AcquireLockTests.ConcurrencyScenarioBlock" };
             var config = new Mock<IOptions<KeySpaceConfiguration>>();
             config.SetupGet(c => c.Value).Returns(keySpace);
-            var key = new DistributedLockKey(keySpace.Root, "lockName");
+            var key = new DistributedLockKey(keySpace.Root, "lockName", new TimeSpan(0, 0, waitForLock), new TimeSpan(0, 10, 0));
 
             var result = 0;
             var timeOutExceptions = 0;
             var testConfig = new TestConfig
             {
                 TaskLength = new TimeSpan(0, 0, taskLength),
-                WaitForLock = new TimeSpan(0, 0, waitForLock),
                 IncrementResult = () => Interlocked.Increment(ref result),
                 IncrementTimeOut = () => Interlocked.Increment(ref timeOutExceptions)
             };
@@ -110,7 +110,6 @@ namespace KeySmith.Tests
 
     public class TestConfig
     {
-        public TimeSpan WaitForLock { get; set; }
         public TimeSpan TaskLength { get; set; }
         public Action IncrementResult { get; set; } = () => { };
         public Action IncrementTimeOut { get; set; } = () => { };
@@ -143,7 +142,7 @@ namespace KeySmith.Tests
         {
             try
             {
-                using (var locker = await _redisLockService.AcquireDistributedLockAsync(_key, _testConfig.WaitForLock))
+                using (var locker = await _redisLockService.AcquireDistributedLockAsync(_key))
                 {
                     _testConfig.IncrementResult();
                     await Task.Delay(_testConfig.TaskLength);

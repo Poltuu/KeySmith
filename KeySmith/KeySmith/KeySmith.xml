@@ -9,12 +9,27 @@
             This class represents a lock key
             </summary>
         </member>
-        <member name="M:KeySmith.DistributedLockKey.#ctor(System.String,System.String)">
+        <member name="P:KeySmith.DistributedLockKey.MaxWaitingTime">
+            <summary>
+            Gets the maximum waiting time before throwing a TimeoutException and leaving the queue for this lock.
+            This represents the maximum time a process can be waiting for this key to be freed.
+            This should be superior to <see cref="P:KeySmith.DistributedLockKey.RedisKeyExpiration"/>
+            </summary>
+        </member>
+        <member name="P:KeySmith.DistributedLockKey.RedisKeyExpiration">
+            <summary>
+            Gets the expiration for the redis key
+            This represents the time when an error most likely occurred, and the redis key resets itself
+            </summary>
+        </member>
+        <member name="M:KeySmith.DistributedLockKey.#ctor(System.String,System.String,System.TimeSpan,System.TimeSpan)">
             <summary>
              Initializes a new instance of the <see cref="T:KeySmith.DistributedLockKey"/> class
             </summary>
             <param name="root"></param>
             <param name="lockName"></param>
+            <param name="maxWaitingTime"></param>
+            <param name="redisKeyExpiration"></param>
         </member>
         <member name="M:KeySmith.DistributedLockKey.GetKey">
             <summary>
@@ -64,12 +79,11 @@
             <param name="key"></param>
             <returns></returns>
         </member>
-        <member name="M:KeySmith.IDistributedLockService.AcquireDistributedLockAsync(KeySmith.DistributedLockKey,System.TimeSpan)">
+        <member name="M:KeySmith.IDistributedLockService.AcquireDistributedLockAsync(KeySmith.DistributedLockKey)">
             <summary>
             Wait until the lock is acquired. Throw a timeout exception otherwise
             </summary>
             <param name="key"></param>
-            <param name="waitMaxTimeout"></param>
             <returns></returns>
         </member>
         <member name="M:KeySmith.IDistributedLockService.GenerateOnlyOnceUsingDistributedLockAsync``1(KeySmith.DistributedLockKey,System.Func{System.Threading.Tasks.Task{``0}},System.TimeSpan)">
@@ -126,11 +140,6 @@
             A service able to serve distributed lock on one redis instance
             </summary>
         </member>
-        <member name="F:KeySmith.RedisLockService.DefaultLockTimeout">
-            <summary>
-            Default ttl of a lock
-            </summary>
-        </member>
         <member name="M:KeySmith.RedisLockService.#ctor(StackExchange.Redis.ConnectionMultiplexer,Microsoft.Extensions.Options.IOptions{KeySmith.KeySpaceConfiguration},KeySmith.IRedisSerializer,Microsoft.Extensions.Logging.ILogger{KeySmith.RedisLockService})">
             <summary>
              Initializes a new instance of the <see cref="T:KeySmith.RedisLockService"/> class
@@ -146,7 +155,7 @@
         <member name="M:KeySmith.RedisLockService.TryAcquireDistributedLockAsync(KeySmith.DistributedLockKey)">
             <inheritdoc />
         </member>
-        <member name="M:KeySmith.RedisLockService.AcquireDistributedLockAsync(KeySmith.DistributedLockKey,System.TimeSpan)">
+        <member name="M:KeySmith.RedisLockService.AcquireDistributedLockAsync(KeySmith.DistributedLockKey)">
             <inheritdoc />
         </member>
         <member name="M:KeySmith.RedisLockService.GenerateOnlyOnceUsingDistributedLockAsync``1(KeySmith.DistributedLockKey,System.Func{System.Threading.Tasks.Task{``0}},System.TimeSpan)">

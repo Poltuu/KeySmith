@@ -34,7 +34,7 @@ namespace KeySmith.Tests
             var keySpace = new KeySpaceConfiguration { Root = "GenerationTests.DefaultScenario" };
             var config = new Mock<IOptions<KeySpaceConfiguration>>();
             config.SetupGet(c => c.Value).Returns(keySpace);
-            var key = new DistributedLockKey(keySpace.Root, "lockName");
+            var key = new DistributedLockKey(keySpace.Root, "lockName", new TimeSpan(0, 0, 3), new TimeSpan(0, 10, 0));
 
             using (var connection = ConfigurationHelper.GetNewConnection())
             {
@@ -72,7 +72,7 @@ namespace KeySmith.Tests
             var keySpace = new KeySpaceConfiguration { Root = "GenerationTests.ConcurrencyScenarioGeneration" };
             var config = new Mock<IOptions<KeySpaceConfiguration>>();
             config.SetupGet(c => c.Value).Returns(keySpace);
-            var key = new DistributedLockKey(keySpace.Root, "lockName");
+            var key = new DistributedLockKey(keySpace.Root, "lockName", new TimeSpan(0, 0, 3), new TimeSpan(0, 10, 0));
 
             var host = new HostBuilder().ConfigureServices(s =>
             {
@@ -122,7 +122,7 @@ namespace KeySmith.Tests
             var keySpace = new KeySpaceConfiguration { Root = "GenerationTests.ConcurrencyScenarioGenerationFailed" };
             var config = new Mock<IOptions<KeySpaceConfiguration>>();
             config.SetupGet(c => c.Value).Returns(keySpace);
-            var key = new DistributedLockKey(keySpace.Root, "lockName");
+            var key = new DistributedLockKey(keySpace.Root, "lockName", new TimeSpan(0, 0, 3), new TimeSpan(0, 10, 0));
 
             var host = new HostBuilder().ConfigureServices(s =>
             {

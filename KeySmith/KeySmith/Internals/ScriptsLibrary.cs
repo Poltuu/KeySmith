@@ -15,8 +15,12 @@ namespace KeySmith.Internals
             if (redis.call('SET', @Key, @Value, 'EX', @Timeout, 'NX')) then
                 return 1
             end
-
-            redis.call('RPUSH', @LockWaitingListKey, @Value)
+            if not redis.call('EXISTS', @LockWaitingListKey) then
+                redis.call('RPUSH', @LockWaitingListKey, @Value)
+                redis.call('EXPIRE', @LockWaitingListKey, @Timeout)
+            else
+                redis.call('RPUSH', @LockWaitingListKey, @Value)
+            end
             return 0
         ");
 
@@ -24,10 +28,12 @@ namespace KeySmith.Internals
         if redis.call('GET', @LockKey) == @Identifier then
             local next = redis.call('LPOP', @LockWaitingListKey)
             if next then
+                redis.call('EXPIRE', @LockWaitingListKey, @Timeout)
                 redis.call('SET', @LockKey, next, 'EX', @Timeout)
                 redis.call('PUBLISH', @LockNotifKey, next)
             else
                 redis.call('DEL', @LockKey)
+                redis.call('DEL', @LockWaitingListKey)
             end
         end");
     }

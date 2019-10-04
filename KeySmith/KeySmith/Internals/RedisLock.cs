@@ -27,7 +27,7 @@ namespace KeySmith.Internals
                     LockKey = _key.GetLockKey(),
                     LockNotifKey = _key.GetLockNotifKey(),
                     LockWaitingListKey = _key.GetLockWaitingListKey(),
-                    Timeout = RedisLockService.DefaultLockTimeout.TotalSeconds,
+                    Timeout = _key.RedisKeyExpiration.TotalSeconds,
                     Identifier = _identifier
                 });
                 _disposedValue = true;

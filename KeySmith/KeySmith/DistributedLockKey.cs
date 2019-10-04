@@ -1,4 +1,6 @@
-﻿namespace KeySmith
+﻿using System;
+
+namespace KeySmith
 {
     /// <summary>
     /// This class represents a lock key
@@ -9,14 +11,32 @@
         private readonly string _lockName;
 
         /// <summary>
+        /// Gets the maximum waiting time before throwing a TimeoutException and leaving the queue for this lock.
+        /// This represents the maximum time a process can be waiting for this key to be freed.
+        /// This should be superior to <see cref="RedisKeyExpiration"/>
+        /// </summary>
+        public TimeSpan MaxWaitingTime { get; private set; }
+
+        /// <summary>
+        /// Gets the expiration for the redis key
+        /// This represents the time when an error most likely occurred, and the redis key resets itself
+        /// </summary>
+        public TimeSpan RedisKeyExpiration { get; private set; }
+
+
+        /// <summary>
         ///  Initializes a new instance of the <see cref="DistributedLockKey"/> class
         /// </summary>
         /// <param name="root"></param>
         /// <param name="lockName"></param>
-        public DistributedLockKey(string root, string lockName)
+        /// <param name="maxWaitingTime"></param>
+        /// <param name="redisKeyExpiration"></param>
+        public DistributedLockKey(string root, string lockName, TimeSpan maxWaitingTime, TimeSpan redisKeyExpiration)
         {
             _root = root;
             _lockName = lockName;
+            MaxWaitingTime = maxWaitingTime;
+            RedisKeyExpiration = redisKeyExpiration;
         }
 
         /// <summary>

@@ -19,9 +19,8 @@ namespace KeySmith
         /// Wait until the lock is acquired. Throw a timeout exception otherwise
         /// </summary>
         /// <param name="key"></param>
-        /// <param name="waitMaxTimeout"></param>
         /// <returns></returns>
-        Task<IDisposable> AcquireDistributedLockAsync(DistributedLockKey key, TimeSpan waitMaxTimeout);
+        Task<IDisposable> AcquireDistributedLockAsync(DistributedLockKey key);
 
         /// <summary>
         /// Get a value, or generate it using the generator function. The evaluation of the generator is guaranteed to be called only once across the system.

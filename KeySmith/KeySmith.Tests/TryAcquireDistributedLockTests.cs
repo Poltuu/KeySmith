@@ -19,7 +19,7 @@ namespace KeySmith.Tests
             var keySpace = new KeySpaceConfiguration { Root = "TryAcquireLockTests.DefaultScenario" };
             var config = new Mock<IOptions<KeySpaceConfiguration>>();
             config.SetupGet(c => c.Value).Returns(keySpace);
-            var key = new DistributedLockKey(keySpace.Root, "lockName");
+            var key = new DistributedLockKey(keySpace.Root, "lockName", TimeSpan.Zero, new TimeSpan(0, 10, 0));
 
             using (var connection = ConfigurationHelper.GetNewConnection())
             {
@@ -55,7 +55,7 @@ namespace KeySmith.Tests
             var keySpace = new KeySpaceConfiguration { Root = "TryAcquireLockTests.ConcurrencyScenarioBlock" };
             var config = new Mock<IOptions<KeySpaceConfiguration>>();
             config.SetupGet(c => c.Value).Returns(keySpace);
-            var key = new DistributedLockKey(keySpace.Root, "lockName");
+            var key = new DistributedLockKey(keySpace.Root, "lockName", TimeSpan.Zero, new TimeSpan(0, 10, 0));
 
             var host = new HostBuilder().ConfigureServices(s =>
             {

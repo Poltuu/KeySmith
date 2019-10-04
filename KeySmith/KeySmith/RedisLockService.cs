@@ -1,13 +1,13 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using KeySmith.Internals;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Linq;
-using System.Collections.Generic;
-using KeySmith.Internals;
 
 namespace KeySmith
 {
@@ -19,11 +19,6 @@ namespace KeySmith
         private readonly ConnectionMultiplexer _redis;
         private readonly ILogger<RedisLockService> _logger;
         private readonly IRedisSerializer _redisSerializer;
-
-        /// <summary>
-        /// Default ttl of a lock
-        /// </summary>
-        public static readonly TimeSpan DefaultLockTimeout = TimeSpan.FromMinutes(10);
 
         private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, Subscriber>> _subscriptions = new ConcurrentDictionary<string, ConcurrentDictionary<string, Subscriber>>();
         private readonly ConcurrentDictionary<string, QueuedLock> _queueForLocks = new ConcurrentDictionary<string, QueuedLock>();
@@ -53,7 +48,7 @@ namespace KeySmith
         ///<inheritdoc />
         public Task<IDisposable?> TryAcquireDistributedLockAsync(DistributedLockKey key)
         {
-            return TryAcquireDistributedLockAsync(_redis.GetDatabase(), key, Guid.NewGuid().ToString(), false);
+            return TryAcquireDistributedLockAsync(_redis.GetDatabase(), key, GetNewIdentifier(), false);
         }
 
         async Task<IDisposable?> TryAcquireDistributedLockAsync(IDatabase db, DistributedLockKey key, string identifier, bool subscribeIfUnavailable)
@@ -66,13 +61,13 @@ namespace KeySmith
                     LockWaitingListKey = key.GetLockWaitingListKey(),
                     Value = identifier,
                     Key = lockKey,
-                    Timeout = DefaultLockTimeout.TotalSeconds
+                    Timeout = key.RedisKeyExpiration.TotalSeconds
                 }).ConfigureAwait(false))
                 {
                     return new RedisLock(db, identifier, key);
                 }
             }
-            else if (await db.StringSetAsync(lockKey, identifier, DefaultLockTimeout, When.NotExists).ConfigureAwait(false))
+            else if (await db.StringSetAsync(lockKey, identifier, key.RedisKeyExpiration, When.NotExists).ConfigureAwait(false))
             {
                 return new RedisLock(db, identifier, key);
             }
@@ -81,12 +76,12 @@ namespace KeySmith
         }
 
         ///<inheritdoc />
-        public Task<IDisposable> AcquireDistributedLockAsync(DistributedLockKey key, TimeSpan waitMaxTimeout)
+        public Task<IDisposable> AcquireDistributedLockAsync(DistributedLockKey key)
         {
-            return AcquireDistributedLockAsync(_redis.GetDatabase(), key, Guid.NewGuid().ToString(), waitMaxTimeout);
+            return AcquireDistributedLockAsync(_redis.GetDatabase(), key, GetNewIdentifier());
         }
 
-        async Task<IDisposable> AcquireDistributedLockAsync(IDatabase db, DistributedLockKey key, string identifier, TimeSpan waitTimeout)
+        async Task<IDisposable> AcquireDistributedLockAsync(IDatabase db, DistributedLockKey key, string identifier)
         {
             //identifier is saved locally, ready for sub message
             _logger.LogDebug($"Enqueue: {identifier}");
@@ -98,8 +93,8 @@ namespace KeySmith
             _queueForLocks.AddOrUpdate(identifier, queuedLock, (s, v) => v);
 
             // no timeout => normal try
-            //timeout => pub/sub on redis queue
-            var noTimeout = waitTimeout == default;
+            // timeout => pub/sub on redis queue
+            var noTimeout = key.MaxWaitingTime == default;
             var result = await TryAcquireDistributedLockAsync(db, key, identifier, !noTimeout).ConfigureAwait(false);
             if (result != null)
             {
@@ -113,7 +108,7 @@ namespace KeySmith
                 throw new TimeoutException("The operation timed out.");
             }
 
-            return await GetTimeoutTaskAsync(waitTimeout, identifier, c => queuedLock.Completion.Task, id =>
+            return await GetTimeoutTaskAsync(key.MaxWaitingTime, identifier, c => queuedLock.Completion.Task, id =>
             {
                 if (_queueForLocks.TryGetValue(identifier, out var qLock))
                 {
@@ -121,6 +116,8 @@ namespace KeySmith
                 }
             }).ConfigureAwait(false);
         }
+
+        private string GetNewIdentifier() => Guid.NewGuid().ToString().Substring(0, 8);
 
         ///<inheritdoc />
         public async Task<T> GenerateOnlyOnceUsingDistributedLockAsync<T>(DistributedLockKey key, Func<Task<T>> generator, TimeSpan waitTimeout)
@@ -132,8 +129,8 @@ namespace KeySmith
                 return Deserialize<T>(resourceValue);
             }
 
-            var identifier = Guid.NewGuid().ToString();
-            var resourceLock = await db.StringSetAsync(key.GetLockKey(), identifier, DefaultLockTimeout, When.NotExists).ConfigureAwait(false);
+            var identifier = GetNewIdentifier();
+            var resourceLock = await db.StringSetAsync(key.GetLockKey(), identifier, key.RedisKeyExpiration, When.NotExists).ConfigureAwait(false);
             if (resourceLock)
             {
                 var value = await GenerateResult(generator).ConfigureAwait(false);
@@ -196,10 +193,10 @@ namespace KeySmith
             return Deserialize<T>(result);
         }
 
-        private void Init(string applicationName)
+        private void Init(string root)
         {
             //this pattern properly handles multitenant scenario
-            var channel = new RedisChannel($"{applicationName}*/locknotif:*", RedisChannel.PatternMode.Pattern);
+            var channel = new RedisChannel($"{root}*/locknotif:*", RedisChannel.PatternMode.Pattern);
             _redis.GetSubscriber().Subscribe(channel, HandleNotification);
         }
 
