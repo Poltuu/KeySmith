@@ -24,9 +24,6 @@ variables:
 
 steps:  
 
-- script: dotnet tool install -g GitVersion.Tool
-- script: dotnet-gitversion /output buildserver /nofetch
-
 - task: DotNetCoreCLI@2
   displayName: 'dotnet build'
   inputs:
