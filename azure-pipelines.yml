@@ -4,7 +4,12 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
 
 trigger:
-- master
+  tags:
+    include:
+    - v*
+  branches:
+    include:
+    - master
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -54,13 +59,15 @@ steps:
   inputs:
     command: 'push'
     packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;'
+    nuGetFeedType: 'internal'
     publishVstsFeed: 'TestNugetFeed'
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    allowPackageConflicts: true
+  condition: succeeded()
 
 - task: NuGetCommand@2
   inputs:
     command: 'push'
     packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;'
     nuGetFeedType: 'external'
-    publishFeedCredentials: NugetConnection
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/tags'))
+    publishFeedCredentials: 'NugetConnection'
+  condition: and(succeeded(), eq(startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
