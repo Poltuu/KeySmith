@@ -70,4 +70,4 @@ steps:
     packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;'
     nuGetFeedType: 'external'
     publishFeedCredentials: 'NugetConnection'
-  condition: and(succeeded(), eq(startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+  condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
