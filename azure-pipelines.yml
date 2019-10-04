@@ -36,19 +36,6 @@ steps:
     projects: '**/*.Tests.csproj'
     arguments: '--collect "Xplat code coverage"'
     nobuild: true
-
-# Generate the report using ReportGenerator (https://github.com/danielpalme/ReportGenerator)
-# First install the tool on the machine, then run it
-- script: |
-    dotnet tool install -g dotnet-reportgenerator-globaltool
-    reportgenerator -reports:$(Build.SourcesDirectory)/**/coverage.cobertura.xml -targetdir:$(Build.SourcesDirectory)/CodeCoverage -reporttypes:HtmlInline_AzurePipelines;Cobertura
-  displayName: Create Code coverage report
-
-- task: PublishCodeCoverageResults@1
-  inputs:
-    codeCoverageTool: Cobertura
-    summaryFileLocation: '$(Build.SourcesDirectory)/CodeCoverage/Cobertura.xml'
-    reportDirectory: '$(Build.SourcesDirectory)/CodeCoverage'
     
 - task: DotNetCoreCLI@2
   inputs:
