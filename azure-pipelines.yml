@@ -42,10 +42,5 @@ steps:
     command: 'pack'
     packagesToPack: '**/*.csproj'
     includesymbols: true
-    versioningScheme: 'byBuildNumber'
-
-# - task: DotNetCoreCLI@2
-#   inputs:
-#     command: 'push'
-#     packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
-#     nuGetFeedType: 'internal'
+    includesource: true
+    versioningScheme: 'off'
