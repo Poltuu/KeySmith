@@ -37,10 +37,19 @@ steps:
     arguments: '--collect "Xplat code coverage"'
     nobuild: true
     
-- task: DotNetCoreCLI@2
+- task: NuGetCommand@2
   inputs:
     command: 'pack'
     packagesToPack: '**/*.csproj'
     includesymbols: true
-    includesource: true
+    packDestination: '$(Build.ArtifactStagingDirectory)'
     versioningScheme: 'off'
+
+- task: NuGetCommand@2
+  inputs:
+    command: 'push'
+    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;'
+    nuGetFeedType: 'external'
+    externalFeedCredentials: $(NUGET)
+    feedsToUse: config
+    includeNuGetOrg: true
