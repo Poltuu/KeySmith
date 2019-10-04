@@ -7,7 +7,7 @@ trigger:
 - master
 
 pool:
-  vmImage: 'windows-latest'
+  vmImage: 'ubuntu-latest'
 
 container: mcr.microsoft.com/dotnet/core/sdk:3.0
 
@@ -24,12 +24,8 @@ variables:
 
 steps:  
 
-- task: NuGetCommand@2
-  displayName: 'get git version'
-  inputs:
-    command: custom
-    arguments: install GitVersion.CommandLine -Version 4.0.0 -OutputDirectory $(Build.BinariesDirectory)/tools -ExcludeVersion
-- script: mono $(Build.BinariesDirectory)/tools/GitVersion.CommandLine/tools/GitVersion.exe /output buildserver /nofetch
+- script: dotnet tool install -g GitVersion.Tool
+- script: GitVersion.Tool /output buildserver /nofetch
 
 - task: DotNetCoreCLI@2
   displayName: 'dotnet build'
@@ -37,8 +33,6 @@ steps:
     command: 'build'
     projects: '**/*.csproj'
     arguments: '--configuration release /p:$(GitVersion.NuGetVersion)'
-  env:
-    CONNECTIONSTRINGS_REDIS: redis:6379
 
 - task: DotNetCoreCLI@2
   displayName: 'dotnet test'
@@ -47,6 +41,8 @@ steps:
     projects: '**/*.Tests.csproj'
     arguments: '--collect "Xplat code coverage"'
     nobuild: true
+  env:
+    CONNECTIONSTRINGS_REDIS: redis:6379
 
 - task: DotNetCoreCLI@2
   inputs:
