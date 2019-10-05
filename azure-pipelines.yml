@@ -11,70 +11,65 @@ trigger:
     include:
     - master
 
-pool:
-  vmImage: 'ubuntu-latest'
-
 resources:
   containers:
   - container: redis
     image: redis
-    ports:
-    - 6379
 
-services:
-  redis: redis
+jobs:
+- job: 'buildTestPack'
+  displayName: 'build test and pack'
+  pool:
+    vmImage: 'ubuntu-latest'
+  container: mcr.microsoft.com/dotnet/core/sdk:3.0
+  services:
+    redis: redis
+  variables:
+    DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+    CONNECTIONSTRINGS_REDIS: 'redis:6379' 
+  steps:
+  - task: DotNetCoreCLI@2
+    displayName: 'dotnet build'
+    inputs:
+      command: 'build'
+      projects: '**/*.csproj'
+      arguments: '--configuration release'
+  - task: DotNetCoreCLI@2
+    displayName: 'dotnet test'
+    inputs:
+      command: 'test'
+      projects: '**/*.Tests.csproj'
+      arguments: '--collect "Xplat code coverage"'
+      nobuild: true
+  - task: DotNetCoreCLI@2
+    displayName: 'dotnet pack'
+    inputs:
+      command: 'pack'
+      packagesToPack: '**/*.csproj'
+      includesymbols: true
+      includesource: true
+      versioningScheme: 'off'
+      nobuild: true
+  - publish: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;'
+    artifact: Packages
+- job: 'nuget'
+  displayName: 'Nuget'
+  steps:
+  - task: NuGetCommand@2
+    displayName: 'nuget push to local feed'
+    inputs:
+      command: 'push'
+      packagesToPush: Packages
+      nuGetFeedType: 'internal'
+      publishVstsFeed: 'TestNugetFeed'
+      allowPackageConflicts: true
+    condition: succeeded()
 
-variables:
-  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
-  CONNECTIONSTRINGS_REDIS: 'redis:6379' 
-
-steps:
-
-- task: UseDotNet@2
-  displayName: 'Use dotnet sdk 3.x'
-  inputs:
-    version: 3.x
-
-- task: DotNetCoreCLI@2
-  displayName: 'dotnet build'
-  inputs:
-    command: 'build'
-    projects: '**/*.csproj'
-    arguments: '--configuration release'
-
-- task: DotNetCoreCLI@2
-  displayName: 'dotnet test'
-  inputs:
-    command: 'test'
-    projects: '**/*.Tests.csproj'
-    arguments: '--collect "Xplat code coverage"'
-    nobuild: true
-
-- task: DotNetCoreCLI@2
-  displayName: 'dotnet pack'
-  inputs:
-    command: 'pack'
-    packagesToPack: '**/*.csproj'
-    includesymbols: true
-    includesource: true
-    versioningScheme: 'off'
-    nobuild: true
-    
-- task: NuGetCommand@2
-  displayName: 'nuget push to local feed'
-  inputs:
-    command: 'push'
-    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;'
-    nuGetFeedType: 'internal'
-    publishVstsFeed: 'TestNugetFeed'
-    allowPackageConflicts: true
-  condition: succeeded()
-
-- task: NuGetCommand@2
-  displayName: 'nuget push to nuget.org on tag'
-  inputs:
-    command: 'push'
-    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;'
-    nuGetFeedType: 'external'
-    publishFeedCredentials: 'NugetConnection'
-  condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+  - task: NuGetCommand@2
+    displayName: 'nuget push to nuget.org on tag'
+    inputs:
+      command: 'push'
+      packagesToPush: Packages
+      nuGetFeedType: 'external'
+      publishFeedCredentials: 'NugetConnection'
+    condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
