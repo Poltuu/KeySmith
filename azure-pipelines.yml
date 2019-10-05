@@ -83,5 +83,5 @@ jobs:
       command: 'push'
       packagesToPush: '$(System.DefaultWorkingDirectory)/**/*.nupkg'
       nuGetFeedType: 'external'
-      publishFeedCredentials: 'NugetConnection'
+      publishFeedCredentials: $(NUGET_SECRET)
     condition: startsWith(variables['Build.SourceBranch'], 'refs/tags/')
