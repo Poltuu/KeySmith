@@ -54,7 +54,7 @@ jobs:
   - task: PublishBuildArtifacts@1
     displayName: 'Upload Packages Artifacts'
     inputs:
-      PathtoPublish: '$(Build.ArtifactStagingDirectory)/**/*.nupkg'
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
       ArtifactName: 'Packages'
       publishLocation: 'Container'
 
@@ -68,12 +68,12 @@ jobs:
     displayName: 'Download Packages Artifacts'
     inputs:
       artifactName: Packages
-      downloadPath: '$(System.DefaultWorkingDirectory)/**/*.nupkg'
+      downloadPath: '$(System.DefaultWorkingDirectory)'
   - task: NuGetCommand@2
     displayName: 'Nuget push to local feed'
     inputs:
       command: 'push'
-      packagesToPush: '$(System.DefaultWorkingDirectory)'
+      packagesToPush: '$(System.DefaultWorkingDirectory)/**/*.nupkg'
       nuGetFeedType: 'internal'
       publishVstsFeed: 'TestNugetFeed'
       allowPackageConflicts: true
@@ -81,7 +81,7 @@ jobs:
     displayName: 'Nuget push to nuget.org on tag'
     inputs:
       command: 'push'
-      packagesToPush: '$(System.DefaultWorkingDirectory)'
+      packagesToPush: '$(System.DefaultWorkingDirectory)/**/*.nupkg'
       nuGetFeedType: 'external'
       publishFeedCredentials: 'NugetConnection'
     condition: startsWith(variables['Build.SourceBranch'], 'refs/tags/')
