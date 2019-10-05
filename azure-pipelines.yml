@@ -16,23 +16,21 @@ pool:
 
 resources:
   containers:
+  - container: my_container
+    image: ubuntu
   - container: redis
     image: redis
-    ports:
-    - 6379
+
+container: my_container
 
 services:
   redis: redis
 
 variables:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
-  CONNECTIONSTRINGS_REDIS: 'localhost:${AGENT_SERVICES_REDIS_PORTS_6379}' 
+  CONNECTIONSTRINGS_REDIS: 'redis:6379' 
 
-steps:  
-- script: |
-    echo CONNECTIONSTRINGS_REDIS
-    curl localhost:6379
-    redis-cli -p "${AGENT_SERVICES_REDIS_PORTS_6379}" ping
+steps:
 
 - task: UseDotNet@2
   displayName: 'Use dotnet sdk 3.x'
