@@ -19,7 +19,7 @@ resources:
   - container: redis
     image: redis
     ports:
-    - 6379/tcp
+    - 6379:637
 #${AGENT_SERVICES_REDIS_PORTS_6379}
 
 services:
@@ -27,7 +27,7 @@ services:
 
 variables:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
-  CONNECTIONSTRINGS_REDIS: 'localhost:6379' 
+  CONNECTIONSTRINGS_REDIS: 'localhost:637' 
 
 steps:  
 - task: UseDotNet@2
