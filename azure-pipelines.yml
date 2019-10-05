@@ -54,7 +54,7 @@ jobs:
   - task: PublishBuildArtifacts@1
     displayName: 'Upload Packages Artifacts'
     inputs:
-      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)/**/*.nupkg'
       ArtifactName: 'Packages'
       publishLocation: 'Container'
 
@@ -68,7 +68,7 @@ jobs:
     displayName: 'Download Packages Artifacts'
     inputs:
       artifactName: Packages
-      downloadPath: '$(System.DefaultWorkingDirectory)'
+      downloadPath: '$(System.DefaultWorkingDirectory)/**/*.nupkg'
   - task: NuGetCommand@2
     displayName: 'Nuget push to local feed'
     inputs:
