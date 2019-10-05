@@ -110,7 +110,7 @@ namespace KeySmith.Tests
             }
             finally
             {
-                await service.InvalidateAsync(key);
+                await host.Services.GetRequiredService<RedisLockService>().InvalidateAsync(key);
                 await host.StopAsync();
             }
         }
@@ -154,7 +154,7 @@ namespace KeySmith.Tests
             }
             finally
             {
-                await service.InvalidateAsync(key);
+                await host.Services.GetRequiredService<RedisLockService>().InvalidateAsync(key);
                 await host.StopAsync();
             }
         }
