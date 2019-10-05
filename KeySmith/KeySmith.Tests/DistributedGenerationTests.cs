@@ -110,6 +110,7 @@ namespace KeySmith.Tests
             }
             finally
             {
+                await service.InvalidateAsync(key);
                 await host.StopAsync();
             }
         }
@@ -153,6 +154,7 @@ namespace KeySmith.Tests
             }
             finally
             {
+                await service.InvalidateAsync(key);
                 await host.StopAsync();
             }
         }
@@ -192,11 +194,6 @@ namespace KeySmith.Tests
                 GenerationTests.ConcurrencyScenarioGenerationExceptions.Add(e);
             }
         }
-
-        public override Task StopAsync(CancellationToken cancellationToken)
-        {
-            return _redisLockService.InvalidateAsync(_key);
-        }
     }
 
     public class F5 : FailedGeneratorHostedService { public F5(RedisLockService s, DistributedLockKey key) : base(s, key) { } }
@@ -226,11 +223,6 @@ namespace KeySmith.Tests
             {
                 GenerationTests.ConcurrencyScenarioGenerationFails.Add(e);
             }
-        }
-
-        public override Task StopAsync(CancellationToken cancellationToken)
-        {
-            return _redisLockService.InvalidateAsync(_key);
         }
     }
 }
