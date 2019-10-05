@@ -16,11 +16,12 @@ resources:
   - container: redis
     image: redis
 
+pool:
+  vmImage: 'ubuntu-latest'
+
 jobs:
 - job: 'buildTestPack'
   displayName: 'build test and pack'
-  pool:
-    vmImage: 'ubuntu-latest'
   container: mcr.microsoft.com/dotnet/core/sdk:3.0
   services:
     redis: redis
@@ -54,6 +55,7 @@ jobs:
     artifact: Packages
 - job: 'nuget'
   displayName: 'Nuget'
+  condition: succeeded()
   steps:
   - task: NuGetCommand@2
     displayName: 'nuget push to local feed'
