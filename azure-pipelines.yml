@@ -16,19 +16,17 @@ pool:
 
 resources:
   containers:
-  - container: my_container
-    image: ubuntu
   - container: redis
     image: redis
-
-container: my_container
+    ports:
+    - 6379
 
 services:
   redis: redis
 
 variables:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
-  CONNECTIONSTRINGS_REDIS: 'redis:6379' 
+  CONNECTIONSTRINGS_REDIS: 'localhost:6379' 
 
 steps:
 
