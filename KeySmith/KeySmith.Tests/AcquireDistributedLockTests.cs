@@ -102,6 +102,7 @@ namespace KeySmith.Tests
             }
             finally
             {
+                await host.Services.GetRequiredService<RedisLockService>().InvalidateAsync(key);
                 //CLEAN
                 await host.StopAsync();
             }
@@ -131,11 +132,6 @@ namespace KeySmith.Tests
             _redisLockService = redisLockService;
             _key = key;
             _testConfig = testConfig;
-        }
-
-        public override Task StopAsync(CancellationToken cancellationToken)
-        {
-            return _redisLockService.InvalidateAsync(_key);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
