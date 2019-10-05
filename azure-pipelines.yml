@@ -47,32 +47,37 @@ jobs:
     inputs:
       command: 'pack'
       packagesToPack: '**/*.csproj'
+      nobuild: true
       includesymbols: true
       includesource: true
       versioningScheme: 'off'
-      nobuild: true
-  - publish: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;'
+  - publish: '$(Build.ArtifactStagingDirectory)'
     artifact: Packages
+
 - job: 'nuget'
   displayName: 'Nuget'
   dependsOn: 'buildTestPack'
   condition: succeeded()
   steps:
+  - checkout: none
+  - task: DownloadBuildArtifacts@0
+    displayName: 'Download Packages Artifacts'
+    inputs:
+      artifactName: Packages
+      downloadPath: $(System.DefaultWorkingDirectory)
   - task: NuGetCommand@2
     displayName: 'nuget push to local feed'
     inputs:
       command: 'push'
-      packagesToPush: Packages
+      packagesToPush: $(System.DefaultWorkingDirectory)
       nuGetFeedType: 'internal'
       publishVstsFeed: 'TestNugetFeed'
       allowPackageConflicts: true
-    condition: succeeded()
-
   - task: NuGetCommand@2
     displayName: 'nuget push to nuget.org on tag'
     inputs:
       command: 'push'
-      packagesToPush: Packages
+      packagesToPush: $(System.DefaultWorkingDirectory)
       nuGetFeedType: 'external'
       publishFeedCredentials: 'NugetConnection'
-    condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+    condition: startsWith(variables['Build.SourceBranch'], 'refs/tags/')
