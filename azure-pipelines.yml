@@ -55,6 +55,7 @@ jobs:
     artifact: Packages
 - job: 'nuget'
   displayName: 'Nuget'
+  dependsOn: 'buildTestPack'
   condition: succeeded()
   steps:
   - task: NuGetCommand@2
