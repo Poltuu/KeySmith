@@ -18,6 +18,8 @@ resources:
   containers:
   - container: redis
     image: redis
+    ports:
+    - 6379
 
 services:
   redis: redis
@@ -46,7 +48,7 @@ steps:
     arguments: '--collect "Xplat code coverage"'
     nobuild: true
   env:
-    CONNECTIONSTRINGS_REDIS: redis:6379
+    CONNECTIONSTRINGS_REDIS: localhost:${AGENT_SERVICES_REDIS_PORTS_6379}
 
 - task: DotNetCoreCLI@2
   inputs:
