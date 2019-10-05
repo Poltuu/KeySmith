@@ -27,6 +27,7 @@ services:
 
 variables:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  CONNECTIONSTRINGS_REDIS: 'localhost:6379' 
 
 steps:  
 - task: UseDotNet@2
@@ -48,10 +49,9 @@ steps:
     projects: '**/*.Tests.csproj'
     arguments: '--collect "Xplat code coverage"'
     nobuild: true
-  env:
-    CONNECTIONSTRINGS_REDIS: localhost:6379 
 
 - task: DotNetCoreCLI@2
+  displayName: 'dotnet pack'
   inputs:
     command: 'pack'
     packagesToPack: '**/*.csproj'
@@ -61,6 +61,7 @@ steps:
     nobuild: true
     
 - task: NuGetCommand@2
+  displayName: 'nuget push to local feed'
   inputs:
     command: 'push'
     packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;'
@@ -70,6 +71,7 @@ steps:
   condition: succeeded()
 
 - task: NuGetCommand@2
+  displayName: 'nuget push to nuget.org on tag'
   inputs:
     command: 'push'
     packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;'
