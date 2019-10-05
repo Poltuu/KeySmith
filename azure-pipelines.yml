@@ -51,8 +51,12 @@ jobs:
       includesymbols: true
       includesource: true
       versioningScheme: 'off'
-  - publish: '$(Build.ArtifactStagingDirectory)'
-    artifact: Packages
+  - task: PublishBuildArtifacts@1
+    displayName: 'Upload Packages Artifacts'
+    inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      ArtifactName: 'Packages'
+      publishLocation: 'Container'
 
 - job: 'nuget'
   displayName: 'Nuget'
@@ -64,20 +68,20 @@ jobs:
     displayName: 'Download Packages Artifacts'
     inputs:
       artifactName: Packages
-      downloadPath: $(System.DefaultWorkingDirectory)
+      downloadPath: '$(System.DefaultWorkingDirectory)'
   - task: NuGetCommand@2
-    displayName: 'nuget push to local feed'
+    displayName: 'Nuget push to local feed'
     inputs:
       command: 'push'
-      packagesToPush: $(System.DefaultWorkingDirectory)
+      packagesToPush: '$(System.DefaultWorkingDirectory)'
       nuGetFeedType: 'internal'
       publishVstsFeed: 'TestNugetFeed'
       allowPackageConflicts: true
   - task: NuGetCommand@2
-    displayName: 'nuget push to nuget.org on tag'
+    displayName: 'Nuget push to nuget.org on tag'
     inputs:
       command: 'push'
-      packagesToPush: $(System.DefaultWorkingDirectory)
+      packagesToPush: '$(System.DefaultWorkingDirectory)'
       nuGetFeedType: 'external'
       publishFeedCredentials: 'NugetConnection'
     condition: startsWith(variables['Build.SourceBranch'], 'refs/tags/')
