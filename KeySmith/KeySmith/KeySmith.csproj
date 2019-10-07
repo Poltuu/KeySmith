@@ -9,7 +9,7 @@
     <Authors>Romain V</Authors>
     <Description>Keysmith provides support efficient distributed locking with one redis instance. For several redis instances, prefer redlock.</Description>
     <PackageLicenseExpression>Unlicense</PackageLicenseExpression>
-    <PackageIconUrl>https://raw.githubusercontent.com/Poltuu/Harpoon/master/icon.png</PackageIconUrl>
+    <PackageIconUrl>https://raw.githubusercontent.com/Poltuu/KeySmith/master/KeySmith/KeySmith/icon.png</PackageIconUrl>
     <PackageTags>distributed lock</PackageTags>
   </PropertyGroup>
 
