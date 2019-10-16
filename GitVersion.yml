@@ -1,5 +1,10 @@
 # GitVersion.yml
 mode: Mainline
-branches: {}
+next-version: 0.0.0
+branches:
+  feature:
+    tag: alpha
+  master:
+    tag: ''
 ignore:
   sha: []

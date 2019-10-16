@@ -10,10 +10,9 @@ namespace KeySmith
         /// <summary>
         /// Initializes a new instance of the <see cref="GenerationException"/> class
         /// </summary>
-        /// <param name="exceptionType"></param>
         /// <param name="message"></param>
-        public GenerationException(string exceptionType, string message)
-            : base($"An error of type '{exceptionType}' has been raised during generation by another process: {message}")
+        public GenerationException(string? message)
+            : base($"An error has been raised during generation by another process: {message}")
         {
         }
     }
