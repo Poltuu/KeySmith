@@ -41,6 +41,10 @@ namespace KeySmith
                     using (var protector = new LockProtector(_scriptLibrary, state))
                     {
                         await state.WaitingTask.ConfigureAwait(false);
+                        if (state.Token.IsCancellationRequested)
+                        {
+                            throw new TaskCanceledException();
+                        }
                         return await callback(state.Token).ConfigureAwait(false);
                     }
                 }

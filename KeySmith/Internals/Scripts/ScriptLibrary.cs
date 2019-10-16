@@ -24,8 +24,9 @@ namespace KeySmith.Internals.Scripts
                 redis.call('HSET', @LockWaitingSetKey, @Identifier, 0)
             else
                 redis.call('RPUSH', @LockWaitingListKey, @Identifier)
-                redis.call('PEXPIRE', @LockWaitingListKey, @Timeout)
                 redis.call('HSET', @LockWaitingSetKey, @Identifier, 0)
+
+                redis.call('PEXPIRE', @LockWaitingListKey, @Timeout)
                 redis.call('PEXPIRE', @LockWaitingSetKey, @Timeout)
             end
 
@@ -35,11 +36,11 @@ namespace KeySmith.Internals.Scripts
         static readonly string FreeLockAndPopScript = @"
             if redis.call('GET', @LockKey) == @Identifier then
                 local next = redis.call('LPOP', @LockWaitingListKey)
-                while next and redis.call('HEXISTS', @LockWaitingSetKey, next) == 0 do
+                while next and redis.call('HDEL', @LockWaitingSetKey, next) == 0 do
                     next = redis.call('LPOP', @LockWaitingListKey)
                 end
+
                 if next then
-                    redis.call('HDEL', @LockWaitingSetKey, next)
                     redis.call('SET', @LockKey, next, 'PX', @Timeout)
                     redis.call('PEXPIRE', @LockWaitingSetKey, @Timeout)
                     redis.call('PEXPIRE', @LockWaitingListKey, @Timeout)

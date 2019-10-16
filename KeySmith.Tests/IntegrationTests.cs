@@ -1,6 +1,7 @@
 ﻿using KeySmith.Internals.Scripts;
 using StackExchange.Redis;
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -85,7 +86,7 @@ namespace KeySmith.Tests
             var service = new LockService(library);
 
             var root = Guid.NewGuid().ToString().Substring(0, 8);
-            var key = new Key(root, "name", TimeSpan.FromSeconds(1));
+            var key = new Key(root, "name", TimeSpan.FromSeconds(300));
 
             var db = connection.GetDatabase();
 
@@ -95,18 +96,22 @@ namespace KeySmith.Tests
             await ResetKeys(db, key);
             try
             {
+                var watch = new Stopwatch();
                 var tasks = Enumerable.Range(0, 100).Select(i => service.LockAsync(key, async c =>
                  {
                      Interlocked.Increment(ref concurrencyScenarioCounter);
                      if (concurrencyScenarioCounter != 1)
                      {
+                         watch.Stop();
                          Interlocked.Increment(ref errorCount);
+                         throw new Exception($"Lock failed after {watch.ElapsedMilliseconds}");
                      }
                      Interlocked.Increment(ref counter);
                      await Task.Delay(10);
                      Interlocked.Decrement(ref concurrencyScenarioCounter);
                  }, CancellationToken.None));
 
+                watch.Start();
                 await Task.WhenAll(tasks);
 
                 Assert.Equal(100, counter);

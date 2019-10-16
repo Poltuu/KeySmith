@@ -55,7 +55,14 @@ namespace KeySmith.Internals.Locks
         {
             lock (_stateLocker)
             {
-                CancellationTokenSource.Cancel();
+                try
+                {
+                    CancellationTokenSource.Cancel();
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+
                 if (exception == null)
                 {
                     QueueInRedis.TrySetCanceled(Token);
