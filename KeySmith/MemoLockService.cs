@@ -77,7 +77,16 @@ namespace KeySmith
 
             try
             {
-                return await _lockService.LockAsync(key.GetLockKey(), c => LockedCallback(key, generator, c), cancellationToken).ConfigureAwait(false);
+                return await _lockService.LockAsync(key.GetLockKey(), async c =>
+                {
+                    //in case we missed the publication
+                    var result = await TryGetCachedValue(key).ConfigureAwait(false);
+                    if (result != null)
+                    {
+                        return result.Value;
+                    }
+                    return await LockedCallback(key, generator, c).ConfigureAwait(false);
+                }, cancellationToken).ConfigureAwait(false);
             }
             catch (TaskCanceledException)
             {
@@ -119,7 +128,7 @@ namespace KeySmith
             }
             else
             {
-                task.SetResult(v);
+                task.TrySetResult(v);
             }
 
             try

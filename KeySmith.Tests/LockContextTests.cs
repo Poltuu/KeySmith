@@ -41,6 +41,15 @@ namespace KeySmith.Tests
                     }
                     break;
                 case State.WithKey:
+                    if (context.Identifier == message)
+                    {
+                        Assert.Equal(State.WithKey, context.State);
+                    }
+                    else
+                    {
+                        Assert.Equal(State.Done, context.State);
+                    }
+                    break;
                 case State.Done:
                     Assert.Equal(State.Done, context.State);
                     break;

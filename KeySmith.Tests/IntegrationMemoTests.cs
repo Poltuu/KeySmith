@@ -20,7 +20,7 @@ namespace KeySmith.Tests
             var service = provider.GetRequiredService<IMemoLockService>();
 
             var root = Guid.NewGuid().ToString().Substring(0, 8);
-            var memoKey = new MemoKey(root, "name", TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(500));
+            var memoKey = new MemoKey(root, "name", TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
 
             var db = provider.GetRequiredService<ConnectionMultiplexer>().GetDatabase();
             await ResetKeys(db, memoKey);
@@ -49,43 +49,43 @@ namespace KeySmith.Tests
             var service = provider.GetRequiredService<IMemoLockService>();
 
             var root = Guid.NewGuid().ToString().Substring(0, 8);
-            var memoKey = new MemoKey(root, "name", TimeSpan.FromSeconds(100), TimeSpan.FromSeconds(500));
+            var memoKey = new MemoKey(root, "name", TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2));
 
             var db = provider.GetRequiredService<ConnectionMultiplexer>().GetDatabase();
             await ResetKeys(db, memoKey);
             try
             {
-                RedisValue answer = "answer";
-                var failedFirstTask = service.MemoLockAsync(memoKey, c =>
+                try
                 {
-                    throw new NullReferenceException("oups");
-                }, CancellationToken.None);
-                var succesfullSecondTask = WaitBeforeStart(service.MemoLockAsync(memoKey, c => Task.FromResult(answer), CancellationToken.None), 100);
+                    await service.MemoLockAsync(memoKey, c => throw new NullReferenceException("oups"), CancellationToken.None);
+
+                    throw new Exception("Nothing was thrown");
+                }
+                catch (NullReferenceException)
+                {
+                }
+                catch (GenerationException)// we actually get it from redis before we had time to clean the setup.
+                {
+                }
 
                 try
                 {
-                    Task.WaitAll(failedFirstTask, succesfullSecondTask);
+                    RedisValue answer = "answer";
+                    await service.MemoLockAsync(memoKey, c => Task.FromResult(answer), CancellationToken.None);
+
+                    throw new Exception("Nothing was thrown");
                 }
-                catch (AggregateException e)
+                catch (GenerationException)
                 {
-                    Assert.Equal(2, e.InnerExceptions.Count);
-                    Assert.Single(e.InnerExceptions.OfType<NullReferenceException>());
-                    Assert.Single(e.InnerExceptions.OfType<GenerationException>());
                 }
 
-                Assert.False(await db.KeyExistsAsync(memoKey.GetValueKey()));//value is in redis
+                Assert.False(await db.KeyExistsAsync(memoKey.GetValueKey()));
                 Assert.True(await db.KeyExistsAsync(memoKey.GetErrorKey()));
             }
             finally
             {
                 await ResetKeys(db, memoKey);
             }
-        }
-
-        private async Task WaitBeforeStart(Task t, int ms)
-        {
-            await Task.Delay(ms);
-            await t;
         }
 
         [Fact]
@@ -98,7 +98,7 @@ namespace KeySmith.Tests
             var service = provider.GetRequiredService<IMemoLockService>();
 
             var root = Guid.NewGuid().ToString().Substring(0, 8);
-            var memoKey = new MemoKey(root, "name", TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(500));
+            var memoKey = new MemoKey(root, "name", TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
 
             var db = provider.GetRequiredService<ConnectionMultiplexer>().GetDatabase();
 
@@ -131,8 +131,8 @@ namespace KeySmith.Tests
                     Assert.Equal(42, answer);
                 }
 
-                Assert.True(await db.KeyExistsAsync(memoKey.GetValueKey()));//value is in redis
                 Assert.False(await db.KeyExistsAsync(memoKey.GetErrorKey()));
+                Assert.True(await db.KeyExistsAsync(memoKey.GetValueKey()));
             }
             finally
             {
