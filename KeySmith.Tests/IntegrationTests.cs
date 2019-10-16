@@ -102,7 +102,7 @@ namespace KeySmith.Tests
                 var tasks = Enumerable.Range(0, 100).Select(i => service.LockAsync(key, async c =>
                  {
                      Interlocked.Increment(ref concurrencyScenarioCounter);
-                     events.Enqueue($"{i} in");
+                     events.Enqueue($"{i:d3} in  at {watch.ElapsedMilliseconds:d4}ms thread id {Thread.CurrentThread.ManagedThreadId}");
                      if (concurrencyScenarioCounter != 1)
                      {
                          watch.Stop();
@@ -111,7 +111,7 @@ namespace KeySmith.Tests
                      }
                      Interlocked.Increment(ref counter);
                      await Task.Delay(10);
-                     events.Enqueue($"{i} out");
+                     events.Enqueue($"{i:d3} out at {watch.ElapsedMilliseconds:d4}ms thread id {Thread.CurrentThread.ManagedThreadId}");
                      Interlocked.Decrement(ref concurrencyScenarioCounter);
                  }, CancellationToken.None));
 

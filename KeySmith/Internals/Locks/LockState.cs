@@ -1,6 +1,7 @@
 ﻿using KeySmith.Internals.Scripts.Parameters;
 using StackExchange.Redis;
 using System;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -22,7 +23,7 @@ namespace KeySmith.Internals.Locks
 
         private readonly object _stateLocker = new object();
 
-        public LockState(Key key, CancellationToken cancellationToken) : this(key, Guid.NewGuid().ToString().Substring(0, 8), cancellationToken) { }
+        public LockState(Key key, CancellationToken cancellationToken) : this(key, GetUniqueKey(12), cancellationToken) { }
         internal LockState(Key key, string identifier, CancellationToken cancellationToken)
         {
             Key = key;
@@ -33,6 +34,22 @@ namespace KeySmith.Internals.Locks
             CancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
             Parameters = new LockLuaParameters(identifier, key);
+        }
+
+        private static readonly char[] _chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890-_".ToCharArray();
+        private static string GetUniqueKey(int size)
+        {
+            var data = new byte[size];
+            using (var crypto = new RNGCryptoServiceProvider())
+            {
+                crypto.GetBytes(data);
+            }
+            var result = new System.Text.StringBuilder(size);
+            foreach (var b in data)
+            {
+                result.Append(_chars[b % _chars.Length]);
+            }
+            return result.ToString();
         }
 
         public void SetWithKey()
