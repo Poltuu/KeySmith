@@ -80,7 +80,10 @@ namespace KeySmith.Internals.Locks
                     break;
 
                 case State.WithKey:
-                    SetDone();
+                    if (key != Identifier)
+                    {
+                        SetDone();
+                    }
                     break;
             }
         }

@@ -16,7 +16,7 @@ namespace KeySmith
         }
 
         public Task LockAsync(Key key, Func<CancellationToken, Task> callback, CancellationToken cancellationToken)
-            => LockAsync(key, c => callback(c), cancellationToken);
+            => LockAsync(key, async c => { await callback(c).ConfigureAwait(true); return true; }, cancellationToken);
 
         public async Task<T> LockAsync<T>(Key key, Func<CancellationToken, Task<T>> callback, CancellationToken cancellationToken)
         {

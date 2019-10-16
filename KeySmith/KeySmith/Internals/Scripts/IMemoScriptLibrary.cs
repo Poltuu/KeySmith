@@ -7,7 +7,7 @@ namespace KeySmith.Internals.Scripts
 {
     interface IMemoScriptLibrary
     {
-        Task<RedisValue> GetValueAsync(RedisKey key);
+        Task<RedisValue[]> GetValuesAsync(RedisKey valueKey, RedisKey errorKey);
         Task PublishAsync(MemoSetValueParameters parameters);
 
         Task SubscribeAsync(RedisChannel channel, Action<RedisChannel, RedisValue> handler);

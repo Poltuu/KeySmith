@@ -45,8 +45,8 @@ namespace KeySmith.Internals.Scripts
             await SetAndPublishLoaded.EvaluateAsync(_connectionMultiplexer.GetDatabase(), parameters, flags: CommandFlags.FireAndForget).ConfigureAwait(false);
         }
 
-        public Task<RedisValue> GetValueAsync(RedisKey key)
-            => _connectionMultiplexer.GetDatabase().StringGetAsync(key);
+        public Task<RedisValue[]> GetValuesAsync(RedisKey valueKey, RedisKey errorKey)
+            => _connectionMultiplexer.GetDatabase().StringGetAsync(new[] { valueKey, errorKey });
 
         public Task SubscribeAsync(RedisChannel channel, Action<RedisChannel, RedisValue> handler)
             => _connectionMultiplexer.GetSubscriber().SubscribeAsync(channel, handler);

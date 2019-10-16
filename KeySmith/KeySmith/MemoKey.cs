@@ -39,7 +39,7 @@ namespace KeySmith
             ValueExpiration = valueExpiration;
         }
 
-        internal Key GetLock() => new Key(_root, _lockName, LockExpiration);
+        internal Key GetLockKey() => new Key(_root, _lockName, LockExpiration);
 
         internal string GetValueKey() => $"{_root}/{_lockName}";
         internal string GetErrorKey() => $"{_root}/error:{_lockName}";

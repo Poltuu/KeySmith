@@ -21,24 +21,40 @@ namespace KeySmith
         public async Task<RedisValue> MemoLockAsync(MemoKey key, Func<CancellationToken, Task<RedisValue>> generator, CancellationToken cancellationToken)
         {
             var taskSource = new TaskCompletionSource<RedisValue>();
-            using var source = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            var handler = GetHandler(source, taskSource);
-            try
+            using (var source = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
             {
-                await _scriptLibrary.SubscribeAsync(key.GetSubscribtionChannel(), handler).ConfigureAwait(false);
-
-                var anyTask = Task.WhenAny(taskSource.Task, MemoLockWithoutSubscriptionAsync(key, generator, source.Token));
-                var first = await anyTask.ConfigureAwait(false);
-                if (first.IsFaulted)
+                var handler = GetHandler(source, taskSource);
+                try
                 {
-                    throw first.Exception.InnerException;
+                    await _scriptLibrary.SubscribeAsync(key.GetSubscribtionChannel(), handler).ConfigureAwait(false);
+
+                    var anyTask = Task.WhenAny(taskSource.Task, MemoLockWithoutSubscriptionAsync(key, generator, source.Token));
+                    var first = await anyTask.ConfigureAwait(false);
+                    if (first.IsFaulted)
+                    {
+                        throw first.Exception.InnerException;
+                    }
+                    return first.Result;
                 }
-                return first.Result;
+                finally
+                {
+                    await _scriptLibrary.UnsubscribeAsync(key.GetSubscribtionChannel(), handler).ConfigureAwait(false);
+                }
             }
-            finally
+        }
+
+        private async Task<RedisValue?> TryGetCachedValue(MemoKey key)
+        {
+            var result = await _scriptLibrary.GetValuesAsync(key.GetValueKey(), key.GetErrorKey()).ConfigureAwait(false);
+            if (result[0] != RedisValue.Null)
             {
-                await _scriptLibrary.UnsubscribeAsync(key.GetSubscribtionChannel(), handler).ConfigureAwait(false);
+                return result[0];
             }
+            if (result[1] != RedisValue.Null)
+            {
+                throw new GenerationException(result[1]);
+            }
+            return null;
         }
 
         private async Task<RedisValue> MemoLockWithoutSubscriptionAsync(MemoKey key, Func<CancellationToken, Task<RedisValue>> generator, CancellationToken cancellationToken)
@@ -48,10 +64,10 @@ namespace KeySmith
                 throw new TaskCanceledException();
             }
 
-            var result = await _scriptLibrary.GetValueAsync(key.GetValueKey()).ConfigureAwait(false);
-            if (result != RedisValue.Null)
+            var result = await TryGetCachedValue(key).ConfigureAwait(false);
+            if (result != null)
             {
-                return result;
+                return result.Value;
             }
 
             if (cancellationToken.IsCancellationRequested)
@@ -61,14 +77,14 @@ namespace KeySmith
 
             try
             {
-                return await _lockService.LockAsync(key.GetLock(), c => LockedCallback(key, generator, c), cancellationToken).ConfigureAwait(false);
+                return await _lockService.LockAsync(key.GetLockKey(), c => LockedCallback(key, generator, c), cancellationToken).ConfigureAwait(false);
             }
             catch (TaskCanceledException)
             {
-                result = await _scriptLibrary.GetValueAsync(key.GetValueKey()).ConfigureAwait(false);
-                if (result != RedisValue.Null)
+                result = await TryGetCachedValue(key).ConfigureAwait(false);
+                if (result != null)
                 {
-                    return result;
+                    return result.Value;
                 }
                 throw;
             }
@@ -99,13 +115,21 @@ namespace KeySmith
         {
             if (c.ToString().Contains("/memoerrornotif:"))
             {
-                task.SetException(new GenerationException(v));
+                task.TrySetException(new GenerationException(v));
             }
             else
             {
                 task.SetResult(v);
             }
-            source.Cancel();
+
+            try
+            {
+                source.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+
+            }
         };
     }
 }

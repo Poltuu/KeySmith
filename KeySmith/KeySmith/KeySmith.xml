@@ -104,12 +104,12 @@
             A set of extensions methods on <see cref="T:Microsoft.Extensions.DependencyInjection.IServiceCollection"/>
             </summary>
         </member>
-        <member name="M:KeySmith.ServiceCollectionExtensions.AddKeySmith(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Options.IOptions{StackExchange.Redis.ConfigurationOptions})">
+        <member name="M:KeySmith.ServiceCollectionExtensions.AddKeySmith(Microsoft.Extensions.DependencyInjection.IServiceCollection,System.String)">
             <summary>
             Add <see cref="T:KeySmith.ILockService"/> and <see cref="T:KeySmith.IMemoLockService"/> to the provided <paramref name="services"/>.
             </summary>
             <param name="services"></param>
-            <param name="options"><see cref="T:StackExchange.Redis.ConnectionMultiplexer"/> will be registered as a singleton using the provided options</param>
+            <param name="redisConfiguration"><see cref="T:StackExchange.Redis.ConnectionMultiplexer"/> will be registered as a singleton using the provided options</param>
             <returns></returns>
         </member>
         <member name="M:KeySmith.ServiceCollectionExtensions.AddKeySmith(Microsoft.Extensions.DependencyInjection.IServiceCollection,StackExchange.Redis.ConfigurationOptions)">
@@ -126,6 +126,14 @@
             </summary>
             <param name="services"></param>
             <param name="getConnection"><see cref="T:StackExchange.Redis.ConnectionMultiplexer"/> will be registered as a singleton using the provided callback</param>
+            <returns></returns>
+        </member>
+        <member name="M:KeySmith.ServiceCollectionExtensions.AddKeySmith(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Options.IOptions{StackExchange.Redis.ConfigurationOptions})">
+            <summary>
+            Add <see cref="T:KeySmith.ILockService"/> and <see cref="T:KeySmith.IMemoLockService"/> to the provided <paramref name="services"/>.
+            </summary>
+            <param name="services"></param>
+            <param name="options"><see cref="T:StackExchange.Redis.ConnectionMultiplexer"/> will be registered as a singleton using the provided options</param>
             <returns></returns>
         </member>
         <member name="M:KeySmith.ServiceCollectionExtensions.AddKeySmithWithoutConnectionMultiplexer(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
