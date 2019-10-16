@@ -1,6 +1,7 @@
 ﻿using KeySmith.Internals.Scripts;
 using StackExchange.Redis;
 using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -86,10 +87,11 @@ namespace KeySmith.Tests
             var service = new LockService(library);
 
             var root = Guid.NewGuid().ToString().Substring(0, 8);
-            var key = new Key(root, "name", TimeSpan.FromSeconds(300));
+            var key = new Key(root, "name", TimeSpan.FromSeconds(5));
 
             var db = connection.GetDatabase();
 
+            var events = new ConcurrentQueue<string>();
             var concurrencyScenarioCounter = 0;
             var errorCount = 0;
             var counter = 0;
@@ -100,14 +102,16 @@ namespace KeySmith.Tests
                 var tasks = Enumerable.Range(0, 100).Select(i => service.LockAsync(key, async c =>
                  {
                      Interlocked.Increment(ref concurrencyScenarioCounter);
+                     events.Enqueue($"{i} in");
                      if (concurrencyScenarioCounter != 1)
                      {
                          watch.Stop();
                          Interlocked.Increment(ref errorCount);
-                         throw new Exception($"Lock failed after {watch.ElapsedMilliseconds}");
+                         throw new Exception($"Lock failed after {watch.ElapsedMilliseconds}" + Environment.NewLine + string.Join(Environment.NewLine, events));
                      }
                      Interlocked.Increment(ref counter);
                      await Task.Delay(10);
+                     events.Enqueue($"{i} out");
                      Interlocked.Decrement(ref concurrencyScenarioCounter);
                  }, CancellationToken.None));
 
