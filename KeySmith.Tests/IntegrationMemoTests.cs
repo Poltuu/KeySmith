@@ -56,7 +56,7 @@ namespace KeySmith.Tests
             try
             {
                 RedisValue answer = "answer";
-                var failedFirstTask = service.MemoLockAsync(memoKey, async c =>
+                var failedFirstTask = service.MemoLockAsync(memoKey, c =>
                 {
                     throw new NullReferenceException("oups");
                 }, CancellationToken.None);
@@ -66,7 +66,7 @@ namespace KeySmith.Tests
                 {
                     Task.WaitAll(failedFirstTask, succesfullSecondTask);
                 }
-                catch(AggregateException e)
+                catch (AggregateException e)
                 {
                     Assert.Equal(2, e.InnerExceptions.Count);
                     Assert.Single(e.InnerExceptions.OfType<NullReferenceException>());
