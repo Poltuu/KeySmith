@@ -77,11 +77,6 @@ jobs:
       nuGetFeedType: 'internal'
       publishVstsFeed: 'TestNugetFeed'
       allowPackageConflicts: true
-  - task: NuGetAuthenticate@0
-    displayName: 'Nuget.org authentification'
-    condition: startsWith(variables['Build.SourceBranch'], 'refs/tags/')
-    inputs:
-      nuGetServiceConnections: 'NugetConnection'
   - task: NuGetCommand@2
     displayName: 'Nuget push to nuget.org on tag'
     condition: startsWith(variables['Build.SourceBranch'], 'refs/tags/')
@@ -90,3 +85,4 @@ jobs:
       packagesToPush: '$(System.DefaultWorkingDirectory)/**/*.nupkg'
       nuGetFeedType: 'external'
       publishFeedCredentials: 'NugetConnection'
+      includeSymbols: false
