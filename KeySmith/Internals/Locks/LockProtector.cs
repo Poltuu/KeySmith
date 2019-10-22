@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace KeySmith.Internals.Locks
 {
-    class LockProtector : IDisposable
+    readonly struct LockProtector : IDisposable
     {
         private readonly IScriptLibrary _scriptLibrary;
         private readonly LockState _state;
