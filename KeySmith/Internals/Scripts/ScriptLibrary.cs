@@ -65,82 +65,35 @@ namespace KeySmith.Internals.Scripts
             end
         ";
 
-        private readonly SemaphoreSlim LoadGetLockOrAddToQueueScriptLock = new SemaphoreSlim(1, 1);
-        private readonly SemaphoreSlim LoadFreeLockAndPopLock = new SemaphoreSlim(1, 1);
-        private readonly SemaphoreSlim LoadGetKeySituationLock = new SemaphoreSlim(1, 1);
+        private readonly Lazy<Task<LoadedLuaScript>> GetLockOrAddToQueueLoaded;
+        private readonly Lazy<Task<LoadedLuaScript>> FreeLockAndPopLoaded;
+        private readonly Lazy<Task<LoadedLuaScript>> GetKeySituationLoaded;
 
-        private LoadedLuaScript? GetLockOrAddToQueueLoaded = null;
-        private LoadedLuaScript? FreeLockAndPopLoaded = null;
-        private LoadedLuaScript? GetKeySituationLoaded = null;
+        private Task<LoadedLuaScript> LoadScript(string script)
+            => LuaScript.Prepare(script).LoadAsync(_connectionMultiplexer.GetServer(_connectionMultiplexer.GetEndPoints()[0]));
 
         private readonly ConnectionMultiplexer _connectionMultiplexer;
 
         public ScriptLibrary(ConnectionMultiplexer connectionMultiplexer)
         {
             _connectionMultiplexer = connectionMultiplexer ?? throw new ArgumentNullException(nameof(connectionMultiplexer));
+
+            GetLockOrAddToQueueLoaded = new Lazy<Task<LoadedLuaScript>>(() => LoadScript(GetLockOrAddToQueueScript), LazyThreadSafetyMode.ExecutionAndPublication);
+            FreeLockAndPopLoaded = new Lazy<Task<LoadedLuaScript>>(() => LoadScript(FreeLockAndPopScript), LazyThreadSafetyMode.ExecutionAndPublication);
+            GetKeySituationLoaded = new Lazy<Task<LoadedLuaScript>>(() => LoadScript(GetKeySituationScript), LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
         public async Task<bool> GetLockOrAddToQueue(LockLuaParameters parameters)
-        {
-            if (GetLockOrAddToQueueLoaded == null)
-            {
-                await LoadGetLockOrAddToQueueScriptLock.WaitAsync().ConfigureAwait(false);
-                try
-                {
-                    if (GetLockOrAddToQueueLoaded == null)
-                    {
-                        GetLockOrAddToQueueLoaded = await LuaScript.Prepare(GetLockOrAddToQueueScript).LoadAsync(_connectionMultiplexer.GetServer(_connectionMultiplexer.GetEndPoints()[0])).ConfigureAwait(false);
-                    }
-                }
-                finally
-                {
-                    LoadGetLockOrAddToQueueScriptLock.Release();
-                }
-            }
-            return (bool)await GetLockOrAddToQueueLoaded.EvaluateAsync(_connectionMultiplexer.GetDatabase(), parameters).ConfigureAwait(false);
-        }
+            => (bool)await (await GetLockOrAddToQueueLoaded.Value.ConfigureAwait(false))
+                .EvaluateAsync(_connectionMultiplexer.GetDatabase(), parameters).ConfigureAwait(false);
 
         public async Task FreeLockAndPop(LockLuaParameters parameters)
-        {
-            if (FreeLockAndPopLoaded == null)
-            {
-                await LoadFreeLockAndPopLock.WaitAsync().ConfigureAwait(false);
-                try
-                {
-                    if (FreeLockAndPopLoaded == null)
-                    {
-                        FreeLockAndPopLoaded = await LuaScript.Prepare(FreeLockAndPopScript).LoadAsync(_connectionMultiplexer.GetServer(_connectionMultiplexer.GetEndPoints()[0])).ConfigureAwait(false);
-                    }
-                }
-                finally
-                {
-                    LoadFreeLockAndPopLock.Release();
-                }
-            }
-
-            await FreeLockAndPopLoaded.EvaluateAsync(_connectionMultiplexer.GetDatabase(), parameters, flags: CommandFlags.FireAndForget).ConfigureAwait(false);
-        }
+            => await (await FreeLockAndPopLoaded.Value.ConfigureAwait(false))
+                .EvaluateAsync(_connectionMultiplexer.GetDatabase(), parameters, flags: CommandFlags.FireAndForget).ConfigureAwait(false);
 
         public async Task<int> GetKeySituation(LockLuaParameters parameters)
-        {
-            if (GetKeySituationLoaded == null)
-            {
-                await LoadGetKeySituationLock.WaitAsync().ConfigureAwait(false);
-                try
-                {
-                    if (GetKeySituationLoaded == null)
-                    {
-                        GetKeySituationLoaded = await LuaScript.Prepare(GetKeySituationScript).LoadAsync(_connectionMultiplexer.GetServer(_connectionMultiplexer.GetEndPoints()[0])).ConfigureAwait(false);
-                    }
-                }
-                finally
-                {
-                    LoadGetKeySituationLock.Release();
-                }
-            }
-
-            return (int)await GetKeySituationLoaded.EvaluateAsync(_connectionMultiplexer.GetDatabase(), parameters).ConfigureAwait(false);
-        }
+            => (int)await (await GetKeySituationLoaded.Value.ConfigureAwait(false))
+                .EvaluateAsync(_connectionMultiplexer.GetDatabase(), parameters).ConfigureAwait(false);
 
         public Task SubscribeAsync(LockState state)
             => _connectionMultiplexer.GetSubscriber().SubscribeAsync(state.Key.GetLockChannelKey(), state.Handler);
