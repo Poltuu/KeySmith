@@ -9,10 +9,12 @@ namespace KeySmith
     internal class LockService : ILockService
     {
         private readonly IScriptLibrary _scriptLibrary;
+        private readonly IdentifierGenerator _identifierGenerator;
 
-        public LockService(IScriptLibrary scriptLibrary)
+        public LockService(IScriptLibrary scriptLibrary, IdentifierGenerator identifierGenerator)
         {
             _scriptLibrary = scriptLibrary ?? throw new ArgumentNullException(nameof(scriptLibrary));
+            _identifierGenerator = identifierGenerator ?? throw new ArgumentNullException(nameof(identifierGenerator));
         }
 
         public Task LockAsync(Key key, Func<CancellationToken, Task> callback, CancellationToken cancellationToken)
@@ -25,7 +27,7 @@ namespace KeySmith
                 throw new ArgumentNullException(nameof(callback));
             }
 
-            using var state = new LockState(key, cancellationToken);
+            using var state = new LockState(key, _identifierGenerator.GetUniqueKey(15), cancellationToken);
             try
             {
                 await _scriptLibrary.SubscribeAsync(state).ConfigureAwait(false);

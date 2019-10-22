@@ -15,7 +15,7 @@ namespace KeySmith.Tests
         public void EnsureDisposeWorks()
         {
             var library = new Mock<IScriptLibrary>();
-            using var context = new LockState(new Key("", "", TimeSpan.FromSeconds(1)), CancellationToken.None);
+            using var context = new LockState(new Key("", "", TimeSpan.FromSeconds(1)), "id", CancellationToken.None);
 
             using (var protector = new LockProtector(library.Object, context))
             {
@@ -28,7 +28,7 @@ namespace KeySmith.Tests
         public async Task EnsureNoDeadLockAsyncShouldStop()
         {
             var library = new Mock<IScriptLibrary>();
-            using var context = new LockState(new Key("", "", TimeSpan.FromSeconds(1)), CancellationToken.None);
+            using var context = new LockState(new Key("", "", TimeSpan.FromSeconds(1)), "id2", CancellationToken.None);
             using var protector = new LockProtector(library.Object, context, false);
 
             context.SetDone();
@@ -41,7 +41,7 @@ namespace KeySmith.Tests
         public async Task EnsureNoDeadLockAsyncShouldStop2()
         {
             var library = new Mock<IScriptLibrary>();
-            using var context = new LockState(new Key("", "", TimeSpan.FromSeconds(1)), CancellationToken.None);
+            using var context = new LockState(new Key("", "", TimeSpan.FromSeconds(1)), "id3", CancellationToken.None);
             using var protector = new LockProtector(library.Object, context, false);
 
             context.SetDone(new Exception(""));
@@ -58,7 +58,7 @@ namespace KeySmith.Tests
         public async Task CheckSituationIsCorrectlyInterpreted(int value, object state)
         {
             var library = new Mock<IScriptLibrary>();
-            using var context = new LockState(new Key("", "", TimeSpan.FromMilliseconds(100)), CancellationToken.None);
+            using var context = new LockState(new Key("", "", TimeSpan.FromMilliseconds(100)), "id4", CancellationToken.None);
             switch (state)
             {
                 case State.WithKey:
@@ -94,7 +94,7 @@ namespace KeySmith.Tests
         public async Task CheckSituationIsCorrectlyInterpretedFailCase1()
         {
             var library = new Mock<IScriptLibrary>();
-            using var context = new LockState(new Key("", "", TimeSpan.FromSeconds(1)), CancellationToken.None);
+            using var context = new LockState(new Key("", "", TimeSpan.FromSeconds(1)), "id5", CancellationToken.None);
             using var protector = new LockProtector(library.Object, context, false);
             library.Setup(l => l.GetKeySituation(It.IsAny<LockLuaParameters>())).ReturnsAsync(() => throw new ApplicationException(""));
 
@@ -108,7 +108,7 @@ namespace KeySmith.Tests
         public async Task CheckSituationIsCorrectlyInterpretedFailCase2()
         {
             var library = new Mock<IScriptLibrary>();
-            using var context = new LockState(new Key("", "", TimeSpan.FromSeconds(1)), CancellationToken.None);
+            using var context = new LockState(new Key("", "", TimeSpan.FromSeconds(1)), "id6", CancellationToken.None);
             using var protector = new LockProtector(library.Object, context, false);
             library.Setup(l => l.GetKeySituation(It.IsAny<LockLuaParameters>())).ReturnsAsync(() => 4);
 

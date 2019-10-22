@@ -1,4 +1,5 @@
-﻿using KeySmith.Internals.Scripts;
+﻿using KeySmith.Internals.Locks;
+using KeySmith.Internals.Scripts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -70,6 +71,7 @@ namespace KeySmith
             services.TryAddSingleton<IMemoLockService, MemoLockService>();
 
             return services
+                .AddSingleton<IdentifierGenerator>()
                 .AddSingleton<IScriptLibrary, ScriptLibrary>()
                 .AddSingleton<IMemoScriptLibrary, MemoScriptLibrary>();
         }

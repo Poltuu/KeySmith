@@ -17,7 +17,7 @@ namespace KeySmith.Tests
         {
             var connection = ConfigurationHelper.GetNewConnection();
             var library = new ScriptLibrary(connection);
-            var service = new LockService(library);
+            var service = new LockService(library, new Internals.Locks.IdentifierGenerator());
 
             var root = Guid.NewGuid().ToString().Substring(0, 8);
             var key = new Key(root, "name", TimeSpan.FromSeconds(1));
@@ -49,7 +49,7 @@ namespace KeySmith.Tests
         {
             var connection = ConfigurationHelper.GetNewConnection();
             var library = new ScriptLibrary(connection);
-            var service = new LockService(library);
+            var service = new LockService(library, new Internals.Locks.IdentifierGenerator());
 
             var root = Guid.NewGuid().ToString().Substring(0, 8);
             var key = new Key(root, "name", TimeSpan.FromSeconds(2));
@@ -84,7 +84,7 @@ namespace KeySmith.Tests
         {
             var connection = ConfigurationHelper.GetNewConnection();
             var library = new ScriptLibrary(connection);
-            var service = new LockService(library);
+            var service = new LockService(library, new Internals.Locks.IdentifierGenerator());
 
             var root = Guid.NewGuid().ToString().Substring(0, 8);
             var key = new Key(root, "name", TimeSpan.FromSeconds(5));

@@ -23,8 +23,7 @@ namespace KeySmith.Internals.Locks
 
         private readonly object _stateLocker = new object();
 
-        public LockState(Key key, CancellationToken cancellationToken) : this(key, GetUniqueKey(12), cancellationToken) { }
-        internal LockState(Key key, string identifier, CancellationToken cancellationToken)
+        public LockState(Key key, string identifier, CancellationToken cancellationToken)
         {
             Key = key;
             Identifier = identifier;
