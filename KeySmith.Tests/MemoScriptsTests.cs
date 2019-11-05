@@ -21,9 +21,8 @@ namespace KeySmith.Tests
             var library = new MemoScriptLibrary(connection);
             var db = connection.GetDatabase();
 
-            var timeout = 500;
             var root = Guid.NewGuid().ToString().Substring(0, 8);
-            var key = new MemoKey(root, "key", TimeSpan.FromMilliseconds(timeout), TimeSpan.FromSeconds(1));
+            var key = new MemoKey(root, "key", TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
             var parameters = new MemoSetValueParameters(key, RedisValue.Unbox(value));
 
             try
@@ -34,7 +33,7 @@ namespace KeySmith.Tests
                 await connection.GetSubscriber().SubscribeAsync(parameters.MemoChannelKey, (c, v) => message = v) ;
                 await library.PublishAsync(parameters);
 
-                await Task.Delay(30);
+                await Task.Delay(500);
 
                 var expectedValue = value == null ? RedisValue.EmptyString : RedisValue.Unbox(value);
                 Assert.Equal(expectedValue, message);
