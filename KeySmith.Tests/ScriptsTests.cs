@@ -201,12 +201,12 @@ namespace KeySmith.Tests
             var db = connection.GetDatabase();
 
             var root = Guid.NewGuid().ToString().Substring(0, 8);
-            var key = new Key(root, "name", TimeSpan.FromSeconds(1));
+            var key = new Key(root, "name", TimeSpan.FromSeconds(2));
             using var context = new LockState(key, "identifier", CancellationToken.None);
             await library.SubscribeAsync(context);
 
             await db.PublishAsync(key.GetLockChannelKey(), "identifier");
-            await Task.Delay(30);
+            await Task.Delay(500);
 
             Assert.Equal(State.WithKey, context.State);//proof that the message was received
             await library.UnSubscribeAsync(context);
