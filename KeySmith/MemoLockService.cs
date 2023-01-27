@@ -24,9 +24,10 @@ namespace KeySmith
             using (var source = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
             {
                 var handler = GetHandler(source, taskSource);
+                var subscriptionChannel = key.GetSubscribtionChannel();
                 try
                 {
-                    await _scriptLibrary.SubscribeAsync(key.GetSubscribtionChannel(), handler).ConfigureAwait(false);
+                    await _scriptLibrary.SubscribeAsync(subscriptionChannel, handler).ConfigureAwait(false);
 
                     var anyTask = Task.WhenAny(taskSource.Task, MemoLockWithoutSubscriptionAsync(key, generator, source.Token));
                     var first = await anyTask.ConfigureAwait(false);
@@ -38,7 +39,7 @@ namespace KeySmith
                 }
                 finally
                 {
-                    await _scriptLibrary.UnsubscribeAsync(key.GetSubscribtionChannel(), handler).ConfigureAwait(false);
+                    await _scriptLibrary.UnsubscribeAsync(subscriptionChannel, handler).ConfigureAwait(false);
                 }
             }
         }
@@ -122,7 +123,7 @@ namespace KeySmith
 
         private Action<RedisChannel, RedisValue> GetHandler(CancellationTokenSource source, TaskCompletionSource<RedisValue> task) => (c, v) =>
         {
-            if (c.ToString().Contains("/memoerrornotif:"))
+            if (c.IsErrorChannel())
             {
                 task.TrySetException(new GenerationException(v));
             }
@@ -137,7 +138,7 @@ namespace KeySmith
             }
             catch (ObjectDisposedException)
             {
-
+                //skipped
             }
         };
     }

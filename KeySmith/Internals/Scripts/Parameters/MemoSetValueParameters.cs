@@ -9,7 +9,7 @@ namespace KeySmith.Internals.Scripts.Parameters
         public readonly double MemoKeyExpiration { get; }
         public readonly RedisValue Value { get; }
 
-        public readonly string MemoChannelKey { get; }
+        public readonly string? MemoChannelKey { get; }
 
         public MemoSetValueParameters(MemoKey key, Exception e)
         {

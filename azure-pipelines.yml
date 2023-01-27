@@ -22,7 +22,7 @@ pool:
 jobs:
 - job: 'buildTestPack'
   displayName: 'build test and pack'
-  container: mcr.microsoft.com/dotnet/core/sdk:3.0
+  container: mcr.microsoft.com/dotnet/sdk:6.0
   services:
     redis: redis
   variables:

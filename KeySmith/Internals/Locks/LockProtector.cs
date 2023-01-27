@@ -74,7 +74,7 @@ namespace KeySmith.Internals.Locks
                             //we keep waiting
                             break;
 
-                        //we owns the lock
+                        //we own the lock
                         case 1:
                             //this means the task has been completed while we were looking
                             //we set the result and keep protecting the callback

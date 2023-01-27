@@ -21,7 +21,7 @@ namespace KeySmith.Internals.Locks
 
         public LockLuaParameters Parameters { get; }
 
-        private readonly object _stateLocker = new object();
+        private readonly object _stateLocker = new();
 
         public LockState(Key key, string identifier, CancellationToken cancellationToken)
         {
@@ -33,22 +33,6 @@ namespace KeySmith.Internals.Locks
             CancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
             Parameters = new LockLuaParameters(identifier, key);
-        }
-
-        private static readonly char[] _chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890-_".ToCharArray();
-        private static string GetUniqueKey(int size)
-        {
-            var data = new byte[size];
-            using (var crypto = new RNGCryptoServiceProvider())
-            {
-                crypto.GetBytes(data);
-            }
-            var result = new System.Text.StringBuilder(size);
-            foreach (var b in data)
-            {
-                result.Append(_chars[b % _chars.Length]);
-            }
-            return result.ToString();
         }
 
         public void SetWithKey()
@@ -91,7 +75,7 @@ namespace KeySmith.Internals.Locks
             }
         }
 
-        public void Handler(RedisChannel channel, RedisValue key)
+        public void Handler(RedisChannel _, RedisValue key)
         {
             switch (State)
             {
