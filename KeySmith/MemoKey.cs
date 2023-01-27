@@ -39,13 +39,18 @@ namespace KeySmith
             ValueExpiration = valueExpiration;
         }
 
-        internal Key GetLockKey() => new Key(_root, _lockName, LockExpiration);
+        internal Key GetLockKey() => new(_root, _lockName, LockExpiration);
 
         internal string GetValueKey() => $"{_root}/{_lockName}";
         internal string GetErrorKey() => $"{_root}/error:{_lockName}";
 
-        internal RedisChannel GetErrorChannel() => new RedisChannel($"{_root}/memoerrornotif:{_lockName}", RedisChannel.PatternMode.Literal);
-        internal RedisChannel GetValueChannel() => new RedisChannel($"{_root}/memovaluenotif:{_lockName}", RedisChannel.PatternMode.Literal);
-        internal RedisChannel GetSubscribtionChannel() => new RedisChannel($"{_root}/memo*notif:{_lockName}", RedisChannel.PatternMode.Pattern);
+        internal RedisChannel GetErrorChannel() => new($"{_root}/memoerrornotif:{_lockName}", RedisChannel.PatternMode.Literal);
+        internal RedisChannel GetValueChannel() => new($"{_root}/memovaluenotif:{_lockName}", RedisChannel.PatternMode.Literal);
+        internal RedisChannel GetSubscribtionChannel() => new($"{_root}/memo*notif:{_lockName}", RedisChannel.PatternMode.Pattern);
+    }
+
+    internal static class RedisChannelExtensions
+    {
+        public static bool IsErrorChannel(this RedisChannel channel) => channel.ToString().Contains("/memoerrornotif:");
     }
 }

@@ -21,7 +21,7 @@ namespace KeySmith.Tests
             var library = new MemoScriptLibrary(connection);
             var db = connection.GetDatabase();
 
-            var root = Guid.NewGuid().ToString().Substring(0, 8);
+            var root = Guid.NewGuid().ToString()[..8];
             var key = new MemoKey(root, "key", TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
             var parameters = new MemoSetValueParameters(key, RedisValue.Unbox(value));
 
@@ -30,14 +30,15 @@ namespace KeySmith.Tests
                 await ResetKeys(db, parameters);
 
                 var message = RedisValue.Null;
-                await connection.GetSubscriber().SubscribeAsync(parameters.MemoChannelKey, (c, v) => message = v) ;
+                await connection.GetSubscriber().SubscribeAsync(parameters.MemoChannelKey!, (c, v) => message = v) ;
                 await library.PublishAsync(parameters);
+                var setValue = await db.StringGetAsync(parameters.MemoKey);
 
                 await Task.Delay(500);
 
                 var expectedValue = value == null ? RedisValue.EmptyString : RedisValue.Unbox(value);
                 Assert.Equal(expectedValue, message);
-                Assert.Equal(expectedValue, await db.StringGetAsync(parameters.MemoKey));
+                Assert.Equal(expectedValue, setValue);
             }
             finally
             {
@@ -53,7 +54,7 @@ namespace KeySmith.Tests
             var db = connection.GetDatabase();
 
             var timeout = 500;
-            var root = Guid.NewGuid().ToString().Substring(0, 8);
+            var root = Guid.NewGuid().ToString()[..8];
             var key = new MemoKey(root, "key", TimeSpan.FromMilliseconds(timeout), TimeSpan.FromSeconds(1));
             var result = false;
             await library.SubscribeAsync(key.GetSubscribtionChannel(), (c, v) => result = true);
@@ -72,7 +73,7 @@ namespace KeySmith.Tests
             var db = connection.GetDatabase();
 
             var timeout = 500;
-            var root = Guid.NewGuid().ToString().Substring(0, 8);
+            var root = Guid.NewGuid().ToString()[..8];
             var key = new MemoKey(root, "key", TimeSpan.FromMilliseconds(timeout), TimeSpan.FromSeconds(1));
             var result = false;
             void handler(RedisChannel c, RedisValue v) => result = true;

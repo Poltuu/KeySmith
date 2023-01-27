@@ -8,7 +8,7 @@ namespace KeySmith.Internals.Scripts.Parameters
         public readonly double Timeout { get; }
         public readonly string LockWaitingListKey { get; }
         public readonly string LockWaitingSetKey { get; }
-        public readonly string LockNotifKey { get; }
+        public readonly string? LockNotifKey { get; }
 
         public LockLuaParameters(string identifier, Key key)
         {

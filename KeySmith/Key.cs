@@ -36,6 +36,6 @@ namespace KeySmith
         internal string GetLockQueueKey() => $"{_root}/lockwaiting:{_lockName}";
         internal string GetLockQueueSetKey() => $"{_root}/lockwaitingset:{_lockName}";
 
-        internal RedisChannel GetLockChannelKey() => new RedisChannel($"{_root}/locknotif:{_lockName}", RedisChannel.PatternMode.Literal);
+        internal RedisChannel GetLockChannelKey() => new($"{_root}/locknotif:{_lockName}", RedisChannel.PatternMode.Literal);
     }
 }

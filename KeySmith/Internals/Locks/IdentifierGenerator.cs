@@ -8,19 +8,19 @@ namespace KeySmith.Internals.Locks
     {
         private static readonly char[] _chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890-_".ToCharArray();
 
-        private readonly RNGCryptoServiceProvider _rngCryptoServiceProvider;
+        private readonly RandomNumberGenerator _randomNumberGenerator;
 
         public IdentifierGenerator()
         {
-            _rngCryptoServiceProvider = new RNGCryptoServiceProvider();
+            _randomNumberGenerator = RandomNumberGenerator.Create();
         }
 
-        public void Dispose() => _rngCryptoServiceProvider?.Dispose();
+        public void Dispose() => _randomNumberGenerator?.Dispose();
 
         public string GetUniqueKey(int size)
         {
             var data = new byte[size];
-            _rngCryptoServiceProvider.GetBytes(data);
+            _randomNumberGenerator.GetBytes(data);
             var result = new StringBuilder(size);
             foreach (var b in data)
             {

@@ -26,7 +26,7 @@ namespace KeySmith.Tests
             var db = connection.GetDatabase();
 
             //SETUP
-            var root = Guid.NewGuid().ToString().Substring(0, 8);
+            var root = Guid.NewGuid().ToString()[..8];
             var parameters = new LockLuaParameters("id", new Key(root, "name", TimeSpan.FromMilliseconds(500)));
             try
             {
@@ -57,7 +57,8 @@ namespace KeySmith.Tests
                 }
                 else
                 {
-                    var lockKey = (string)await db.StringGetAsync(parameters.LockKey);
+                    var lockKey = (string?)await db.StringGetAsync(parameters.LockKey);
+                    Assert.NotNull(lockKey);
                     Assert.NotEmpty(lockKey);
                     Assert.NotEqual(parameters.Identifier, lockKey);
                     Assert.Contains(parameters.Identifier, await db.ListRangeAsync(parameters.LockWaitingListKey));
@@ -91,7 +92,7 @@ namespace KeySmith.Tests
             var db = connection.GetDatabase();
 
             //SETUP
-            var root = Guid.NewGuid().ToString().Substring(0, 8);
+            var root = Guid.NewGuid().ToString()[..8];
             var parameters = new LockLuaParameters("id", new Key(root, "name", TimeSpan.FromMilliseconds(500)));
             try
             {
@@ -108,13 +109,13 @@ namespace KeySmith.Tests
                 }
 
                 var message = "";
-                await connection.GetSubscriber().SubscribeAsync(parameters.LockNotifKey, (a, b) => message = b);
+                await connection.GetSubscriber().SubscribeAsync(parameters.LockNotifKey!, (a, b) => message = b);
 
                 //ACT
                 await library.FreeLockAndPop(parameters);
 
                 var locked = await db.StringGetAsync(parameters.LockKey);
-                Assert.NotEqual(parameters.Identifier, (string)locked);
+                Assert.NotEqual(parameters.Identifier, (string?)locked);
 
                 if (priorValue == parameters.Identifier)
                 {
@@ -167,7 +168,7 @@ namespace KeySmith.Tests
             var db = connection.GetDatabase();
 
             //SETUP
-            var root = Guid.NewGuid().ToString().Substring(0, 8);
+            var root = Guid.NewGuid().ToString()[..8];
             var parameters = new LockLuaParameters("id", new Key(root, "name", TimeSpan.FromMilliseconds(500)));
             try
             {
@@ -200,7 +201,7 @@ namespace KeySmith.Tests
             var library = new ScriptLibrary(connection);
             var db = connection.GetDatabase();
 
-            var root = Guid.NewGuid().ToString().Substring(0, 8);
+            var root = Guid.NewGuid().ToString()[..8];
             var key = new Key(root, "name", TimeSpan.FromSeconds(2));
             using var context = new LockState(key, "identifier", CancellationToken.None);
             await library.SubscribeAsync(context);
@@ -219,7 +220,7 @@ namespace KeySmith.Tests
             var library = new ScriptLibrary(connection);
             var db = connection.GetDatabase();
 
-            var root = Guid.NewGuid().ToString().Substring(0, 8);
+            var root = Guid.NewGuid().ToString()[..8];
             var key = new Key(root, "name", TimeSpan.FromSeconds(1));
             using var context = new LockState(key, "identifier", CancellationToken.None);
             await library.SubscribeAsync(context);
